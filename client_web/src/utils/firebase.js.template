@@ -1,0 +1,23 @@
+// Rename this file to "firestore.js" after filling the config object
+// with the data from the firebase project
+import firebase from 'firebase/app';
+import 'firebase/database'
+
+const config = {
+  apiKey: "",
+  authDomain: "",
+  databaseURL: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+
+if (!firebase.apps.length) {
+  firebase.initializeApp(config);
+}
+
+// Firebase real time database
+const realTimeDatabase = firebase.database()
+
+export default realTimeDatabase;
