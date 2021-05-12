@@ -10,7 +10,6 @@ import com.spundev.webrtcshare.utils.MyChildEventListener
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonConfiguration
 import org.webrtc.IceCandidate
 import org.webrtc.SessionDescription
 
@@ -33,7 +32,9 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
         Pair("nonInitiatorMessages", "initiatorMessages")
     }
 
-    val jsonSerializer = Json(JsonConfiguration(ignoreUnknownKeys = true))
+    val jsonSerializer = Json {
+        ignoreUnknownKeys = true
+    }
 
     /**
      * Send a new message to the other end using our database.
@@ -49,7 +50,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
         val dbMessage = when (message) {
             is SignalingMessage.SignalingCandidate -> {
                 // Candidate to json string
-                val stringCandidate = jsonSerializer.stringify(
+                val stringCandidate = jsonSerializer.encodeToString(
                     Candidate.serializer(),
                     Candidate(
                         message.candidate.sdp,
@@ -61,7 +62,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
             }
             is SignalingMessage.SignalingDescription -> {
                 // Description to json string
-                val stringDescription = jsonSerializer.stringify(
+                val stringDescription = jsonSerializer.encodeToString(
                     Description.serializer(),
                     Description(
                         message.description.type.canonicalForm(),
@@ -90,7 +91,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                         // If the description value exists, we are receiving a SessionDescription
                         message.description != null -> {
                             // Json Parse
-                            val descriptionObject = jsonSerializer.parse(
+                            val descriptionObject = jsonSerializer.decodeFromString(
                                 Description.serializer(),
                                 message.description
                             )
@@ -112,7 +113,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                         // If the description value exists, we are receiving an IceCandidate
                         message.candidate != null -> {
                             // Json Parse
-                            val candidatesObject = jsonSerializer.parse(
+                            val candidatesObject = jsonSerializer.decodeFromString(
                                 Candidate.serializer(),
                                 message.candidate
                             )
