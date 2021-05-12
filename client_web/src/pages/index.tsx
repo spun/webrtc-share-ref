@@ -6,7 +6,7 @@ function Home() {
     <ul>
       <li>
         <Link href="/create.html" as="/create">
-          <a>Create room</a>
+          <span>Create room</span>
         </Link>
       </li>
       <li>
@@ -27,6 +27,5 @@ function Home() {
     </ul>
   );
 }
-
 
 export default Home;

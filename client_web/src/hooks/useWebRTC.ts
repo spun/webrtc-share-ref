@@ -7,10 +7,10 @@ const Role = {
   GUEST: 1,
 };
 
-function useWebRTC(roomId, isInitiator) {
+function useWebRTC(roomId, isInitiator) : [boolean, string[], ((m: string) => void)] {
   const [isConnected, setIsConnected] = useState(false);
   const [messages, setMessages] = useState([]);
-  const [channel, setChannel] = useState();
+  const [channel, setChannel] = useState(null);
 
   const sendMessageFunction = useCallback((message) => {
     setMessages((prevMessages) => [...prevMessages, message]);
@@ -26,7 +26,6 @@ function useWebRTC(roomId, isInitiator) {
     let makingOffer = false;
     let ignoreOffer = false;
     const polite = true;
-
 
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     const peerConnection = new RTCPeerConnection(configuration);
@@ -57,7 +56,6 @@ function useWebRTC(roomId, isInitiator) {
     dataChannel.onclose = () => setIsConnected(false);
     dataChannel.onmessage = ({ data }) => setMessages((prevMessages) => [...prevMessages, data]);
 
-
     signalingServer.setOnMessageListener(async ({ description, candidate }) => {
       try {
         if (description) {
@@ -86,6 +84,7 @@ function useWebRTC(roomId, isInitiator) {
       }
     });
 
+    // eslint-disable-next-line consistent-return
     return () => {
       signalingServer.removeOnMessageListener();
     };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import realTimeDatabase from '../utils/firebase';
+import { realTimeDatabase } from '../utils/firebase';
 
 const db = realTimeDatabase;
 

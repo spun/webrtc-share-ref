@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRouter } from 'next/router';
-import { useWebRTC, SignalingRole } from '../hooks/useWebRTC';
+import { useWebRTC } from '../hooks/useWebRTC';
 
 const Join = () => {
   const router = useRouter();
