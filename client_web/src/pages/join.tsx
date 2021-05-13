@@ -3,6 +3,7 @@ import { useRouter } from 'next/router';
 import { useWebRTC } from '../hooks/useWebRTC';
 
 const Join = () => {
+  // Get room id parameter from url /join?roomId=<value>
   const router = useRouter();
   const { roomId } = router.query;
 

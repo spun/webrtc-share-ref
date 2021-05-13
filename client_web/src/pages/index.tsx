@@ -1,29 +1,32 @@
 import React from 'react';
 import Link from 'next/link';
 
+const routes = [{
+  name: 'Create room',
+  path: '/create',
+}, {
+  name: 'Join room',
+  path: '/join',
+}, {
+  name: 'QR example',
+  path: '/qr',
+}, {
+  name: 'About Us',
+  path: '/about',
+}];
+
 function Home() {
   return (
     <ul>
-      <li>
-        <Link href="/create.html" as="/create">
-          <span>Create room</span>
-        </Link>
-      </li>
-      <li>
-        <Link href="/join">
-          Join room
-        </Link>
-      </li>
-      <li>
-        <Link href="/qr">
-          QR example
-        </Link>
-      </li>
-      <li>
-        <Link href="/about">
-          About Us
-        </Link>
-      </li>
+      {
+        routes.map((item) => (
+          <li>
+            <Link href={item.path} passHref>
+              <a href="replace">{item.name}</a>
+            </Link>
+          </li>
+        ))
+      }
     </ul>
   );
 }
