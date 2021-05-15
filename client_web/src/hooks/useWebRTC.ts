@@ -7,10 +7,23 @@ const Role = {
   GUEST: 1,
 };
 
-function useWebRTC(roomId, isInitiator) {
+/**
+ * Hook that join a room using a signaling server and creates a webRtc connection with any other
+ * participant in the room.
+ * @param roomId The room id we are using to connect
+ * @param isInitiator Our rol in the room. Are we initiating the signaling?
+ * @returns The conection state, the list of received messages and a function to send messages
+ */
+function useWebRTC(
+  roomId: string,
+  isInitiator: boolean,
+) : [boolean, string[], ((m: string) => void)] {
+  // Connection state
   const [isConnected, setIsConnected] = useState(false);
+  // List of messages. Both sent and received
   const [messages, setMessages] = useState([]);
-  const [channel, setChannel] = useState();
+  // The channel we are using to communicate
+  const [channel, setChannel] = useState(null);
 
   const sendMessageFunction = useCallback((message) => {
     setMessages((prevMessages) => [...prevMessages, message]);
@@ -19,14 +32,17 @@ function useWebRTC(roomId, isInitiator) {
   }, [channel]);
 
   useEffect(() => {
+    // If the roomId is empty, stop. The roomId could be empty if
+    // another hook is in charge of retrieve it.
     if (!roomId || roomId === '') return;
 
+    // Create instance of the signaling server
     const signalingServer = new SignalingServer(roomId, isInitiator);
+
     // keep track of some negotiation state to prevent races and errors
     let makingOffer = false;
     let ignoreOffer = false;
     const polite = true;
-
 
     const configuration = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
     const peerConnection = new RTCPeerConnection(configuration);
@@ -51,13 +67,17 @@ function useWebRTC(roomId, isInitiator) {
 
     const dataChannel = peerConnection.createDataChannel('chat', { negotiated: true, id: 0 });
     dataChannel.onopen = () => {
+      // Notify we are now connected
       setIsConnected(true);
+      // Save the channel
       setChannel(dataChannel);
     };
+    // Listen for channel close events
     dataChannel.onclose = () => setIsConnected(false);
+    // Append any received messages to the list
     dataChannel.onmessage = ({ data }) => setMessages((prevMessages) => [...prevMessages, data]);
 
-
+    // Start listening the signaling server for any new candidates
     signalingServer.setOnMessageListener(async ({ description, candidate }) => {
       try {
         if (description) {
@@ -86,6 +106,8 @@ function useWebRTC(roomId, isInitiator) {
       }
     });
 
+    // Disconnect
+    // eslint-disable-next-line consistent-return
     return () => {
       signalingServer.removeOnMessageListener();
     };

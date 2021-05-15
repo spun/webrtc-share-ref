@@ -1,8 +1,23 @@
-import realTimeDatabase from './firebase';
+import { firebase, realTimeDatabase } from './firebase';
 
 const db = realTimeDatabase;
 
+type SignalingMessage = {
+  description?: RTCSessionDescription;
+  candidate?: RTCIceCandidate;
+};
+
 class SignalingServer {
+  roomId: string;
+
+  isInitiator: boolean;
+
+  myMessagesFolder: string;
+
+  peerMessagesFolder: string;
+
+  messagesFolderRef: firebase.database.Reference;
+
   constructor(roomId, isInitiator) {
     this.roomId = roomId;
     this.isInitiator = isInitiator;
@@ -19,7 +34,7 @@ class SignalingServer {
     this.messagesFolderRef = null;
   }
 
-  async sendMessage({ description, candidate }) {
+  async sendMessage({ description, candidate } : SignalingMessage) {
     let message;
     if (description) {
       message = { description: JSON.stringify(description) };
@@ -50,10 +65,10 @@ class SignalingServer {
   removeOnMessageListener() {
     if (this.messagesFolderRef) this.messagesFolderRef.off();
   }
+
+  static HOST = 'HOST';
+
+  static GUEST = 'GUEST';
 }
-
-SignalingServer.HOST = 'HOST';
-SignalingServer.GUEST = 'GUEST';
-
 
 export default SignalingServer;

@@ -2,7 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 
 import useCreateRoom from '../hooks/useCreateRoom';
-import { useWebRTC, SignalingRole } from '../hooks/useWebRTC';
+import { useWebRTC } from '../hooks/useWebRTC';
 
 function RTC() {
   const roomId = useCreateRoom();
