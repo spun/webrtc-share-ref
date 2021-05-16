@@ -1,6 +1,10 @@
 import React, { useState, useRef } from 'react';
 import Link from 'next/link';
 
+import {
+  MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile,
+} from '../types/FileMessage';
+
 // import useCreateRoom from '../hooks/useCreateRoom';
 import { useWebRTC } from '../hooks/useWebRTC';
 
@@ -15,13 +19,13 @@ function returnFileSize(number: number) : string {
   return 'unknown';
 }
 
-function readFile(file: File) {
+function readFile(file: File): Promise<ArrayBuffer> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => { resolve(reader.result); };
+    reader.onload = () => { resolve(reader.result as ArrayBuffer); };
     reader.onerror = () => { reject(new Error('Error loading file')); };
     reader.onabort = () => { reject(new Error('Operation aborted')); };
-    reader.readAsText(file);
+    reader.readAsArrayBuffer(file);
   });
 }
 
@@ -29,7 +33,7 @@ function RTC() {
   // const roomId = useCreateRoom();
   const [roomIdText, setRoomIdText] = useState('room_001');
   const [roomId, setRoomId] = useState('');
-  const [isConnected, messages, sendMessage] = useWebRTC(roomId, true);
+  const [isConnected, messages, sendMessage, sendFile] = useWebRTC(roomId, true);
 
   const fileInput = useRef(null);
 
@@ -49,19 +53,43 @@ function RTC() {
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const file = fileInput.current.files[0];
+    sendFile(file);
+    /*
     const name = file.name ? file.name : 'NOT SUPPORTED';
     const type = file.type ? file.type : 'NOT SUPPORTED';
     const size = file.size ? returnFileSize(file.size) : 'NOT SUPPORTED';
-    const content = await readFile(file);
     console.log(`Selected file - ${name} (${type}), file size ${size}.`);
-    console.log(`Content: ${content}`);
+
+    const contentArray = await readFile(file);
+    // const decoder = new TextDecoder();
+    // const contentText = decoder.decode(contentArray);
+    // console.log(`Content: ${contentText}`);
+
+    const hashArrayBuffer = await crypto.subtle.digest('SHA-256', contentArray); // hash the message
+    const hashArray = Array.from(new Uint8Array(hashArrayBuffer));
+    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
+    console.log(`Hash: ${hashHex}`);
+    */
   }
 
-  const listMessages = messages.map((message, index) => (
-    <li key={index}>
-      {message}
-    </li>
-  ));
+  const listMessages = messages.reduce((result: JSX.Element[], message, index) => {
+    switch (message.type) {
+      case MessageType.TEXT: {
+        const textMessage = message as ChannelMessageText;
+        result.push(<li key={index}>{textMessage.content.value}</li>);
+        break;
+      }
+      case MessageType.FILE: {
+        const fileMessage = message as ChannelMessageFile;
+        console.log('fileMessage', fileMessage);
+        result.push(<li key={index}>{fileMessage.content.filename}</li>);
+        break;
+      }
+      default:
+        break;
+    }
+    return result;
+  }, []);
 
   return (
     <>
