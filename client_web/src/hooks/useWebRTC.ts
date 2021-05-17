@@ -139,14 +139,47 @@ function useFileReceiver(
     console.log('run receive');
 
     // Create receiver channel
-    const fileSenderChannel = peerConnection.createDataChannel('file transfer (receiver)', { negotiated: true, id: 5 });
-    fileSenderChannel.onopen = () => {
-      console.log(`Receiver (onopen) ${fileSenderChannel.readyState}`);
-      fileSenderChannel.send('Receiver ready');
+    const fileReceiverChannel = peerConnection.createDataChannel('file transfer (receiver)', { negotiated: true, id: 5 });
+    fileReceiverChannel.binaryType = 'arraybuffer';
+    fileReceiverChannel.onopen = () => {
+      console.log(`Receiver (onopen) ${fileReceiverChannel}`);
+      fileReceiverChannel.send('Receiver ready');
     };
-    fileSenderChannel.onmessage = ({ data }) => { console.log('Receiver (onmessage):', data); };
-    fileSenderChannel.onerror = (error) => { console.error('Receiver (onerror):', error); };
-    fileSenderChannel.onclose = (event) => { console.log('Receiver (onclose):', event); };
+
+    let receiveBuffer = [];
+    let receivedSize = 0;
+    let chunk : ArrayBuffer;
+    fileReceiverChannel.onmessage = (event) => {
+      chunk = event.data;
+      console.log(`Receiver (onmessage): ${event.data.byteLength}`, chunk);
+      // Add chunk
+      receiveBuffer.push(chunk);
+      receivedSize += chunk.byteLength;
+
+      console.log(`${receivedSize} of ${fileMetadata.content.size}`);
+
+      if (receivedSize === fileMetadata.content.size) {
+        // Create complete file blob
+        const received = new Blob(receiveBuffer);
+        receiveBuffer = [];
+
+        // Trigger the download
+        const elem = window.document.createElement('a');
+        elem.href = window.URL.createObjectURL(received);
+        elem.download = fileMetadata.content.filename;
+        // Add to dom
+        document.body.appendChild(elem);
+        // trigger click event
+        elem.click();
+        // remove from dom
+        document.body.removeChild(elem);
+
+        // File transfer done, close channel
+        fileReceiverChannel.close();
+      }
+    };
+    fileReceiverChannel.onerror = (error) => { console.error('Receiver (onerror):', error); };
+    fileReceiverChannel.onclose = (event) => { console.log('Receiver (onclose):', event); };
   }, [peerConnection]);
 
   return [receiveFile];
@@ -159,20 +192,6 @@ function useFileSender(
   const sendFile = useCallback((file: File) => {
     console.log('run send: ', file);
 
-    // Create sender channel
-    const fileSenderChannel = peerConnection.createDataChannel('file transfer (sender)', { negotiated: true, id: 5 });
-    fileSenderChannel.onopen = () => {
-      console.log(`Sender (onopen) ${fileSenderChannel.readyState}`);
-      fileSenderChannel.send('Sender ready');
-      for (let i = 0; i < 10; i += 1) {
-        console.log(`Sender (onopen): Send ${i}`);
-        fileSenderChannel.send(`Sender fake file chunk ${i}`);
-      }
-    };
-    fileSenderChannel.onmessage = ({ data }) => { console.log('Sender (onmessage):', data); };
-    fileSenderChannel.onerror = (error) => { console.error('Sender (onerror):', error); };
-    fileSenderChannel.onclose = (event) => { console.log('Sender (onclose):', event); };
-
     // Notify other peer that we want to send a file
     const fileNotificationMessage : ChannelMessageFile = {
       type: MessageType.FILE,
@@ -180,10 +199,60 @@ function useFileSender(
         filename: file.name,
         size: file.size, // In bytes
         hash: 0, // Hexadecimal
-        transferChannelId: fileSenderChannel.id, // TODO: Use UUID unique for transfer
+        transferChannelId: 5, // TODO: Use UUID unique for transfer
       },
     };
     sendMessageFunction(fileNotificationMessage);
+
+    // Create sender channel
+    const fileSenderChannel = peerConnection.createDataChannel('file transfer (sender)', { negotiated: true, id: 5 });
+    fileSenderChannel.binaryType = 'arraybuffer';
+    fileSenderChannel.onopen = () => {
+      console.log(`Sender (onopen) ${fileSenderChannel.readyState}`);
+      // Note: If we start sending the file here (onopen) the receiver might not be ready if we
+      // are running in Chrome. Apparently, when using prenegotiated datachannel, chrome can fire
+      // "onopen" before the channels are ready.
+      // This open issue talks about a bug with prenegotiated datachannels in chrome. In the
+      // comments they discuss about how prenegotiated datachannel don't follow the spec.
+      //    https://bugs.chromium.org/p/webrtc/issues/detail?id=10727
+      // In our case, because we are sending immediately after onopen is receiver, send doesn't
+      // throw, but the receiver does not trigger onmmessage and the message is lost. We asume that
+      // the receiver is the one that is not ready to receive messages, so we need to wait.
+      // To avoid this "send before receiver ready" the sender will wait until it received a "ready"
+      // message from the receiver.
+      // TODO: Non negotiated channels (peerconnection.ondatachannel) don't have this problem, we
+      // could try to replace our negotiated datachannels.
+    };
+    fileSenderChannel.onmessage = ({ data }) => {
+      // We have received a "ready" message from the receiver. The receiver should be now ready to
+      // receive the file
+      console.log('Sender (onmessage):', data);
+      const chunkSize = 16384;
+      let chunk : ArrayBuffer;
+      let offset = 0;
+      const fileReader = new FileReader();
+      const readSlice = (o: number) => {
+        const slice = file.slice(offset, o + chunkSize);
+        fileReader.readAsArrayBuffer(slice);
+      };
+
+      fileReader.addEventListener('error', (error) => console.error('Error reading file:', error));
+      fileReader.addEventListener('abort', (event) => console.log('File reading aborted:', event));
+      fileReader.addEventListener('load', ({ target }) => {
+        chunk = target.result as ArrayBuffer;
+        fileSenderChannel.send(chunk);
+        offset += chunk.byteLength;
+        if (offset < file.size) {
+          readSlice(offset);
+        } else {
+          // File transfer done, close channel
+          fileSenderChannel.close();
+        }
+      });
+      readSlice(0);
+    };
+    fileSenderChannel.onerror = (error) => { console.error('Sender (onerror):', error); };
+    fileSenderChannel.onclose = (event) => { console.log('Sender (onclose):', event); };
   }, [peerConnection, sendMessageFunction]);
 
   return [sendFile];
