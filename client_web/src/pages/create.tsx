@@ -5,6 +5,9 @@ import {
   MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile,
 } from '../types/FileMessage';
 
+// Components
+import FileButton from '../components/fileLoadForm/fileLoadForm';
+
 // import useCreateRoom from '../hooks/useCreateRoom';
 import { useWebRTC } from '../hooks/useWebRTC';
 
@@ -35,8 +38,6 @@ function RTC() {
   const [roomId, setRoomId] = useState('');
   const [isConnected, messages, sendMessage, sendFile] = useWebRTC(roomId, true);
 
-  const fileInput = useRef(null);
-
   function handleClick() {
     sendMessage('dog');
   }
@@ -48,28 +49,6 @@ function RTC() {
 
   function handleRoomIdInputButton() {
     setRoomId(roomIdText);
-  }
-
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const file = fileInput.current.files[0];
-    sendFile(file);
-    /*
-    const name = file.name ? file.name : 'NOT SUPPORTED';
-    const type = file.type ? file.type : 'NOT SUPPORTED';
-    const size = file.size ? returnFileSize(file.size) : 'NOT SUPPORTED';
-    console.log(`Selected file - ${name} (${type}), file size ${size}.`);
-
-    const contentArray = await readFile(file);
-    // const decoder = new TextDecoder();
-    // const contentText = decoder.decode(contentArray);
-    // console.log(`Content: ${contentText}`);
-
-    const hashArrayBuffer = await crypto.subtle.digest('SHA-256', contentArray); // hash the message
-    const hashArray = Array.from(new Uint8Array(hashArrayBuffer));
-    const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join(''); // convert bytes to hex string
-    console.log(`Hash: ${hashHex}`);
-    */
   }
 
   const listMessages = messages.reduce((result: JSX.Element[], message, index) => {
@@ -121,10 +100,7 @@ function RTC() {
       </p>
       <hr />
       <h2>File share</h2>
-      <form onSubmit={handleSubmit}>
-        <input type="file" ref={fileInput} />
-        <button type="submit">Load file</button>
-      </form>
+      <FileButton onFileLoaded={sendFile} />
       <hr />
       <h2>Messages</h2>
       <ul>{listMessages}</ul>

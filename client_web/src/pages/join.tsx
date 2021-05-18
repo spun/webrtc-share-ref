@@ -6,12 +6,15 @@ import {
   MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile,
 } from '../types/FileMessage';
 
+// Components
+import FileButton from '../components/fileLoadForm/fileLoadForm';
+
 const Join = () => {
   // Get room id parameter from url /join?roomId=<value>
   const router = useRouter();
   const { roomId } = router.query;
 
-  const [isConnected, messages, sendMessage] = useWebRTC(roomId, false);
+  const [isConnected, messages, sendMessage, sendFile] = useWebRTC(roomId, false);
 
   function handleClick() {
     sendMessage('cat');
@@ -46,6 +49,9 @@ const Join = () => {
         isConnected:
         {isConnected ? 'TRUE' : 'FALSE'}
       </p>
+      <hr />
+      <h2>File share</h2>
+      <FileButton onFileLoaded={sendFile} />
       <hr />
       <h2>Messages</h2>
       <ul>{listMessages}</ul>
