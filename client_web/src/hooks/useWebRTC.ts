@@ -5,11 +5,6 @@ import {
 
 import SignalingServer from '../utils/SignalingServer';
 
-const Role = {
-  HOST: 0,
-  GUEST: 1,
-};
-
 function usePeerConnection(signalingServer: SignalingServer, isInitiator: boolean) {
   // Peer connection state holder
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>(null);
@@ -132,32 +127,45 @@ function useDataChannel(
   return [channel, isConnected, message];
 }
 
+/**
+ * Hook to receive a file from a sender channel using WebRTC. The hook will create a channel a
+ * prenegotiated channel and it will wait for file chunks until it receives the full file.
+ * To know how to create the channel (which id) and the size of the file it is trying to receive,
+ * the sender channel first has to send a "details message" using an existing connection. When
+ * the receiver gets this message, it will use this hooks funtion to start the transfer.
+ * Note: This hook is not responsible of receiving the file data.
+ * @param peerConnection A RTCPeerConnection to create the new channel
+ * @returns A function that receives the details of the file we are trying to get.
+ */
 function useFileReceiver(
   peerConnection: RTCPeerConnection,
 ) {
   const receiveFile = useCallback((fileMetadata : ChannelMessageFile) => {
-    console.log('run receive');
-
-    // Create receiver channel
+    // Step 1: Create receiver channel
     const fileReceiverChannel = peerConnection.createDataChannel('file transfer (receiver)', { negotiated: true, id: 5 });
     fileReceiverChannel.binaryType = 'arraybuffer';
+
+    // Step 2: Send the "ready" signal (read useFileSender comments to know why we do this).
     fileReceiverChannel.onopen = () => {
-      console.log(`Receiver (onopen) ${fileReceiverChannel}`);
       fileReceiverChannel.send('Receiver ready');
     };
 
+    // Step 3: Start receiving chunks
     let receiveBuffer = [];
     let receivedSize = 0;
+    let receivedPercentage = 0;
     let chunk : ArrayBuffer;
     fileReceiverChannel.onmessage = (event) => {
       chunk = event.data;
-      console.log(`Receiver (onmessage): ${event.data.byteLength}`, chunk);
-      // Add chunk
+      // Add chunk to buffer
       receiveBuffer.push(chunk);
       receivedSize += chunk.byteLength;
 
-      console.log(`${receivedSize} of ${fileMetadata.content.size}`);
+      // Show percentage
+      receivedPercentage = Math.floor((receivedSize * 100) / fileMetadata.content.size);
+      console.log(`${receivedPercentage} %`);
 
+      // Keep receiving chunks until we have the entire file
       if (receivedSize === fileMetadata.content.size) {
         // Create complete file blob
         const received = new Blob(receiveBuffer);
@@ -185,6 +193,16 @@ function useFileReceiver(
   return [receiveFile];
 }
 
+/**
+ * Hook to send a file to a receiver channel using WebRTC. The hook will first send the other peer
+ * the details of the file (size, filename, etc) and the connection (id of the channel). Note, these
+ * details are sent using an existing channel. After sending the details, the hook will create a new
+ * channel and, after receiving the "ready" signal from the receiver, it will split the file into
+ * chunks and it will send them to the receiver.
+ * @param peerConnection A RTCPeerConnection to create the new channel
+ * @param sendMessageFunction A function to send the file details to the other peer
+ * @returns The function that receives the file we want to send
+ */
 function useFileSender(
   peerConnection: RTCPeerConnection,
   sendMessageFunction: (message: ChannelMessage) => void,
@@ -192,7 +210,7 @@ function useFileSender(
   const sendFile = useCallback((file: File) => {
     console.log('run send: ', file);
 
-    // Notify other peer that we want to send a file
+    // Step 1: Notify other peer that we want to send a file
     const fileNotificationMessage : ChannelMessageFile = {
       type: MessageType.FILE,
       content: {
@@ -204,7 +222,7 @@ function useFileSender(
     };
     sendMessageFunction(fileNotificationMessage);
 
-    // Create sender channel
+    // Step 2: Create sender channel
     const fileSenderChannel = peerConnection.createDataChannel('file transfer (sender)', { negotiated: true, id: 5 });
     fileSenderChannel.binaryType = 'arraybuffer';
     fileSenderChannel.onopen = () => {
@@ -223,6 +241,8 @@ function useFileSender(
       // TODO: Non negotiated channels (peerconnection.ondatachannel) don't have this problem, we
       // could try to replace our negotiated datachannels.
     };
+
+    // Step 3: When ready, send the file chunks
     fileSenderChannel.onmessage = ({ data }) => {
       // We have received a "ready" message from the receiver. The receiver should be now ready to
       // receive the file
@@ -231,6 +251,8 @@ function useFileSender(
       let chunk : ArrayBuffer;
       let offset = 0;
       const fileReader = new FileReader();
+
+      // Split the file in chunk of chuckSize using the offset
       const readSlice = (o: number) => {
         const slice = file.slice(offset, o + chunkSize);
         fileReader.readAsArrayBuffer(slice);
@@ -238,17 +260,20 @@ function useFileSender(
 
       fileReader.addEventListener('error', (error) => console.error('Error reading file:', error));
       fileReader.addEventListener('abort', (event) => console.log('File reading aborted:', event));
+      // Each time a chunk is loaded, we start the transfer
       fileReader.addEventListener('load', ({ target }) => {
         chunk = target.result as ArrayBuffer;
         fileSenderChannel.send(chunk);
         offset += chunk.byteLength;
         if (offset < file.size) {
+          // Request next chunk
           readSlice(offset);
         } else {
           // File transfer done, close channel
           fileSenderChannel.close();
         }
       });
+      // Kickstart the tranfer by requesting the first split
       readSlice(0);
     };
     fileSenderChannel.onerror = (error) => { console.error('Sender (onerror):', error); };
@@ -269,36 +294,48 @@ function useWebRTC(
   roomId: string,
   isInitiator: boolean,
 ) : [boolean, ChannelMessage[], ((m: string) => void), ((f: File) => void)] {
+  // List of messages received and sent
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
-
+  // The signaling server used to kickstart the WebRTC communication
   const [singnalingServer, setSignalingServer] = useState<SignalingServer>(null);
+  // The RTCPeerConnection initiated
   const [peerConnection] = usePeerConnection(singnalingServer, isInitiator);
+  // The main RTCDataChannel created between our peers
   const [channel, isConnected, lastMessage] = useDataChannel(peerConnection, 'chat', { negotiated: true, id: 0 });
 
+  // Create the signaling server if we have a room id. This will trigger the creation of the rest
+  // of components that were waiting for the signaling server (peerConnection, channel).
   useEffect(() => {
     console.log('Main use effect: ', roomId);
     if (roomId === '') return;
-
     setSignalingServer(new SignalingServer(roomId, isInitiator));
   }, [roomId]);
 
+  // A function that will use the existing channel to send a messages
   const sendMessage = useCallback((message: ChannelMessage) => {
     channel.send(JSON.stringify(message));
     setMessages((prevMessages) => [...prevMessages, message]);
   }, [channel]);
 
+  // Utility hooks to transfer files
   const [sendFile] = useFileSender(peerConnection, sendMessage);
   const [receiveFile] = useFileReceiver(peerConnection);
 
+  // This effect will trigger each time the lastMessage receive from the channel changes. This will
+  // keep updated our list of messages.
   useEffect(() => {
     if (lastMessage != null) {
       setMessages((prevMessages) => [...prevMessages, lastMessage]);
+      // If the received message is a notification that our peer is trying to send us a file, we
+      // call the receiveFile function to start the transfer.
       if (lastMessage.type === MessageType.FILE) {
         receiveFile(lastMessage as ChannelMessageFile);
       }
     }
   }, [lastMessage]);
 
+  // Function offered to the components using this hook to simplify the trasnfer of text messages
+  // to the other peer
   const sendTextFunction = useCallback((text) => {
     if (!channel) return;
     const textMessage : ChannelMessageText = {
@@ -311,6 +348,8 @@ function useWebRTC(
     sendMessage(textMessage);
   }, [channel]);
 
+  // Function offered to the components using this hook to simplify the trasnfer of files to
+  // the other peer
   const sendFileFunction = (file: File) => {
     sendFile(file);
   };
@@ -318,4 +357,4 @@ function useWebRTC(
   return [isConnected, messages, sendTextFunction, sendFileFunction];
 }
 
-export { useWebRTC, Role as SignalingRole };
+export default useWebRTC;

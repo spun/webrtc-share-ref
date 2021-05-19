@@ -1,4 +1,4 @@
-// Rename this file to "firestore.js" after filling the config object
+// Rename this file to "firebase.js" after filling the config object
 // with the data from the firebase project
 import firebase from 'firebase/app';
 import 'firebase/database'

@@ -9,28 +9,7 @@ import {
 import FileButton from '../components/fileLoadForm/fileLoadForm';
 
 // import useCreateRoom from '../hooks/useCreateRoom';
-import { useWebRTC } from '../hooks/useWebRTC';
-
-function returnFileSize(number: number) : string {
-  if (number < 1024) {
-    return `${number}bytes`;
-  } if (number >= 1024 && number < 1048576) {
-    return `${(number / 1024).toFixed(1)}KB`;
-  } if (number >= 1048576) {
-    return `${(number / 1048576).toFixed(1)}MB`;
-  }
-  return 'unknown';
-}
-
-function readFile(file: File): Promise<ArrayBuffer> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => { resolve(reader.result as ArrayBuffer); };
-    reader.onerror = () => { reject(new Error('Error loading file')); };
-    reader.onabort = () => { reject(new Error('Operation aborted')); };
-    reader.readAsArrayBuffer(file);
-  });
-}
+import useWebRTC from '../hooks/useWebRTC';
 
 function RTC() {
   // const roomId = useCreateRoom();

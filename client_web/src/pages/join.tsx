@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRouter } from 'next/router';
-import { useWebRTC } from '../hooks/useWebRTC';
+import useWebRTC from '../hooks/useWebRTC';
 
 import {
   MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile,

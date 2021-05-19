@@ -30,4 +30,4 @@ yarn-error.log*
 .env.production.local
 
 # my ignored files
-src/utils/firebase.js
+src/utils/firebase.ts
