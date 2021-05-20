@@ -5,6 +5,11 @@ import {
 
 import SignalingServer from '../utils/SignalingServer';
 
+// This is the safe size to support cross-browser exchange of data
+// https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels#concerns_with_large_messages
+const DEFAULT_CHUNK_SIZE = 16384;
+const MAX_CHUNK_SIZE = 262144;
+
 function usePeerConnection(signalingServer: SignalingServer, isInitiator: boolean) {
   // Peer connection state holder
   const [peerConnection, setPeerConnection] = useState<RTCPeerConnection>(null);
@@ -222,9 +227,61 @@ function useFileSender(
     };
     sendMessageFunction(fileNotificationMessage);
 
-    // Step 2: Create sender channel
+    // Define the size of the chunks
+    const chunkSize = DEFAULT_CHUNK_SIZE;
+    // Set a buffer limit. If we reach this limit we will wait until the onbufferedamountlow
+    // notifies us that the buffer is now low enough to keep sending the file
+    const bufferLimit = chunkSize * 8;
+    // This is a signal that it will indicate us that we are waiting for the onbufferedamountlow
+    // event after reaching the limit. Since onbufferedamountlow will trigger every time the buffer
+    // amount is below the threshold, receiving this event could simply mean that our buffer did
+    // not have the time to get filled.
+    let haltUntilBufferLow = false;
+
+    let offset = 0;
+    let chunk : ArrayBuffer;
+
+    // Step 2: Create sender channel and the file reader
+    const fileReader = new FileReader();
     const fileSenderChannel = peerConnection.createDataChannel('file transfer (sender)', { negotiated: true, id: 5 });
     fileSenderChannel.binaryType = 'arraybuffer';
+    fileSenderChannel.bufferedAmountLowThreshold = chunkSize;
+
+    // Helper funtion to split the file in chunk of chuckSize using the offset
+    const readSlice = (o: number) => {
+      const slice = file.slice(offset, o + chunkSize);
+      fileReader.readAsArrayBuffer(slice);
+    };
+
+    // File reader events
+    fileReader.onerror = (error) => console.error('Error reading file:', error);
+    fileReader.onabort = (event) => console.log('File reading aborted:', event);
+
+    // Each time a chunk is loaded, we start the transfer
+    fileReader.addEventListener('load', ({ target }) => {
+      chunk = target.result as ArrayBuffer;
+      fileSenderChannel.send(chunk);
+      offset += chunk.byteLength;
+
+      const { bufferedAmount } = fileSenderChannel;
+      // Pause sending if we reach the high water mark
+      if (bufferedAmount < bufferLimit) {
+        if (offset < file.size) {
+          // Request next chunk
+          readSlice(offset);
+        } else {
+          // File transfer done, close channel
+          console.log('Done sending ', offset, file.size, bufferedAmount);
+          fileSenderChannel.close();
+        }
+      } else {
+        console.log('STOP sending', bufferedAmount);
+        haltUntilBufferLow = true;
+      }
+    });
+
+    fileSenderChannel.onerror = (error) => { console.error('Sender (onerror):', error); };
+    fileSenderChannel.onclose = (event) => { console.log('Sender (onclose):', event); };
     fileSenderChannel.onopen = () => {
       console.log(`Sender (onopen) ${fileSenderChannel.readyState}`);
       // Note: If we start sending the file here (onopen) the receiver might not be ready if we
@@ -241,43 +298,22 @@ function useFileSender(
       // TODO: Non negotiated channels (peerconnection.ondatachannel) don't have this problem, we
       // could try to replace our negotiated datachannels.
     };
-
-    // Step 3: When ready, send the file chunks
+    // Step 4: When ready, send the file chunks
     fileSenderChannel.onmessage = ({ data }) => {
       // We have received a "ready" message from the receiver. The receiver should be now ready to
       // receive the file
       console.log('Sender (onmessage):', data);
-      const chunkSize = 16384;
-      let chunk : ArrayBuffer;
-      let offset = 0;
-      const fileReader = new FileReader();
-
-      // Split the file in chunk of chuckSize using the offset
-      const readSlice = (o: number) => {
-        const slice = file.slice(offset, o + chunkSize);
-        fileReader.readAsArrayBuffer(slice);
-      };
-
-      fileReader.addEventListener('error', (error) => console.error('Error reading file:', error));
-      fileReader.addEventListener('abort', (event) => console.log('File reading aborted:', event));
-      // Each time a chunk is loaded, we start the transfer
-      fileReader.addEventListener('load', ({ target }) => {
-        chunk = target.result as ArrayBuffer;
-        fileSenderChannel.send(chunk);
-        offset += chunk.byteLength;
-        if (offset < file.size) {
-          // Request next chunk
-          readSlice(offset);
-        } else {
-          // File transfer done, close channel
-          fileSenderChannel.close();
-        }
-      });
       // Kickstart the tranfer by requesting the first split
       readSlice(0);
     };
-    fileSenderChannel.onerror = (error) => { console.error('Sender (onerror):', error); };
-    fileSenderChannel.onclose = (event) => { console.log('Sender (onclose):', event); };
+    fileSenderChannel.onbufferedamountlow = (e) => {
+      if (haltUntilBufferLow) {
+        console.log('onbufferedamountlow', e);
+        haltUntilBufferLow = false;
+        // Request next chunk
+        readSlice(offset);
+      }
+    };
   }, [peerConnection, sendMessageFunction]);
 
   return [sendFile];
