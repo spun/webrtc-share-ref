@@ -1,14 +1,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile,
+  MessageType, ChannelMessage, ChannelMessageText, ChannelMessageFile, FileTransferReadyMessage,
 } from '../types/FileMessage';
 
 import SignalingServer from '../utils/SignalingServer';
 
 // This is the safe size to support cross-browser exchange of data
 // https://developer.mozilla.org/en-US/docs/Web/API/WebRTC_API/Using_data_channels#concerns_with_large_messages
-const DEFAULT_CHUNK_SIZE = 16384;
-const MAX_CHUNK_SIZE = 262144;
+const DEFAULT_CHUNK_SIZE = 16384; // 16 kiB
+const MAX_CHUNK_SIZE = 262144; // 256 kiB
+
+const MIN_BUFFER_LIMIT = 1048576; // 1 MiB
 
 function usePeerConnection(signalingServer: SignalingServer, isInitiator: boolean) {
   // Peer connection state holder
@@ -152,7 +154,11 @@ function useFileReceiver(
 
     // Step 2: Send the "ready" signal (read useFileSender comments to know why we do this).
     fileReceiverChannel.onopen = () => {
-      fileReceiverChannel.send('Receiver ready');
+      const readyMessage : FileTransferReadyMessage = {
+        isReady: true,
+        maxMessageSize: peerConnection.sctp.maxMessageSize,
+      };
+      fileReceiverChannel.send(JSON.stringify(readyMessage));
     };
 
     // Step 3: Start receiving chunks
@@ -168,7 +174,7 @@ function useFileReceiver(
 
       // Show percentage
       receivedPercentage = Math.floor((receivedSize * 100) / fileMetadata.content.size);
-      console.log(`${receivedPercentage} %`);
+      console.log(`${receivedPercentage} %`, receivedSize);
 
       // Keep receiving chunks until we have the entire file
       if (receivedSize === fileMetadata.content.size) {
@@ -228,10 +234,11 @@ function useFileSender(
     sendMessageFunction(fileNotificationMessage);
 
     // Define the size of the chunks
-    const chunkSize = DEFAULT_CHUNK_SIZE;
+    let chunkSize = DEFAULT_CHUNK_SIZE;
     // Set a buffer limit. If we reach this limit we will wait until the onbufferedamountlow
-    // notifies us that the buffer is now low enough to keep sending the file
-    const bufferLimit = chunkSize * 8;
+    // notifies us that the buffer is now low enough to keep sending the file.
+    // The max buffer is eight times the chunk size or at least 1 MiB
+    let bufferLimit = Math.max(chunkSize * 8, MIN_BUFFER_LIMIT);
     // This is a signal that it will indicate us that we are waiting for the onbufferedamountlow
     // event after reaching the limit. Since onbufferedamountlow will trigger every time the buffer
     // amount is below the threshold, receiving this event could simply mean that our buffer did
@@ -272,10 +279,13 @@ function useFileSender(
         } else {
           // File transfer done, close channel
           console.log('Done sending ', offset, file.size, bufferedAmount);
-          fileSenderChannel.close();
+          // Note: If we close the channel, we could lose the current buffer and
+          // the receiver will keep waiting for messages that will not come.
+          // The receiver should be the only one closing the channel.
+          // fileSenderChannel.close();
         }
       } else {
-        console.log('STOP sending', bufferedAmount);
+        console.log('STOP sending', offset, bufferedAmount);
         haltUntilBufferLow = true;
       }
     });
@@ -301,10 +311,22 @@ function useFileSender(
     // Step 4: When ready, send the file chunks
     fileSenderChannel.onmessage = ({ data }) => {
       // We have received a "ready" message from the receiver. The receiver should be now ready to
-      // receive the file
-      console.log('Sender (onmessage):', data);
-      // Kickstart the tranfer by requesting the first split
-      readSlice(0);
+      // receive the file.
+      const readyMessage : FileTransferReadyMessage = JSON.parse(data);
+      if (readyMessage.isReady) {
+        // Calculate the chunkSize, bufferLimit and low buffer threshold with the maxMessageSize
+        // info received from the other peer and our own maxMessageSize
+        const senderMaxMessageSize = peerConnection.sctp.maxMessageSize;
+        const receiverMaxMessageSize = readyMessage.maxMessageSize;
+        const suitableChunkSize = Math.min(senderMaxMessageSize, receiverMaxMessageSize);
+        chunkSize = Math.max(MAX_CHUNK_SIZE, suitableChunkSize);
+        fileSenderChannel.bufferedAmountLowThreshold = chunkSize;
+        // The max buffer is eight times the chunk size or at least 1 MiB
+        bufferLimit = Math.max(chunkSize * 8, MIN_BUFFER_LIMIT);
+        console.log('Connectin Info', chunkSize, bufferLimit);
+        // Kickstart the tranfer by requesting the first split
+        readSlice(0);
+      }
     };
     fileSenderChannel.onbufferedamountlow = (e) => {
       if (haltUntilBufferLow) {

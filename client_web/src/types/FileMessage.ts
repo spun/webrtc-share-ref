@@ -26,3 +26,8 @@ export interface ChannelMessageText extends ChannelMessage {
 export interface ChannelMessageFile extends ChannelMessage {
   content: FileInfo
 }
+
+export type FileTransferReadyMessage = {
+  isReady: boolean,
+  maxMessageSize: number
+};
