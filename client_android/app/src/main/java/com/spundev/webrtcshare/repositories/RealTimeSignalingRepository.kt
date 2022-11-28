@@ -107,7 +107,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                                     type,
                                     descriptionObject.sdp
                                 )
-                                offer(SignalingMessage.SignalingDescription(description))
+                                trySend(SignalingMessage.SignalingDescription(description))
                             }
                         }
                         // If the description value exists, we are receiving an IceCandidate
@@ -123,7 +123,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                                 candidatesObject.sdpMLineIndex!!,
                                 candidatesObject.candidate
                             )
-                            offer(SignalingMessage.SignalingCandidate(candidate))
+                            trySend(SignalingMessage.SignalingCandidate(candidate))
                         }
                         else -> { /* Unknown message format. Do nothing */
                         }

@@ -93,7 +93,7 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
                     val destinationByteArray = ByteArray(buffer.data.limit())
                     buffer.data.get(destinationByteArray)
                     val message = String(destinationByteArray)
-                    messages.offer(messages.value + message)
+                    messages.trySend(messages.value + message)
                 }
             }
 
@@ -105,12 +105,12 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
                 Log.d(TAG, "onStateChange: ")
                 if (dataChannel.state() == DataChannel.State.OPEN) {
                     // Notify connection change
-                    isConnected.offer(true)
+                    isConnected.trySend(true)
                     // Save channel
                     myDataChannel = dataChannel
                 } else {
                     // Notify connection change
-                    isConnected.offer(false)
+                    isConnected.trySend(false)
                 }
             }
         })
@@ -154,7 +154,7 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
             val buffer = ByteBuffer.wrap(message.toByteArray())
             dataChannel.send(DataChannel.Buffer(buffer, false))
             // Also update our messages list with the new message
-            messages.offer(messages.value + message)
+            messages.trySend(messages.value + message)
         }
     }
 }
