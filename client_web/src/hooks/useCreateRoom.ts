@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { realTimeDatabase } from '../utils/firebase';
+import { ref, set, push, child } from "firebase/database";
 
 const db = realTimeDatabase;
 
@@ -13,14 +14,12 @@ function useCreateRoom() {
 
   useEffect(() => {
     (async () => {
-      // Create a new child inside the "rooms" node
-      const roomRef = db.ref('rooms').push();
-      // Retrieve the id of the generated child
-      const roomKey = roomRef.key;
+      // Create a new child inside the "rooms" node and get a reference
+      const newRoom = push(child(ref(db), 'rooms'));
       // Set the title value
-      await roomRef.set({ title: 'title' });
+      await set(newRoom.ref, { title: 'title' });
       // Update the roomId value with the child key
-      setRoomId(roomKey);
+      setRoomId(newRoom.key);
     })();
   }, []);
 

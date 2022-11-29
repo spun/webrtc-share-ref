@@ -22,7 +22,7 @@ function Home() {
         routes.map((item) => (
           <li>
             <Link href={item.path} passHref>
-              <a href="replace">{item.name}</a>
+              {item.name}
             </Link>
           </li>
         ))
