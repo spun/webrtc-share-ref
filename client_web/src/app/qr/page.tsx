@@ -3,7 +3,7 @@
 import useCreateRoom from '../../hooks/useCreateRoom';
 import useQrGenerator from '../../hooks/useQrGenerator';
 
-export default function Home() {
+export default function Qr() {
   const roomId = useCreateRoom();
   const [qrData, loading, error] = useQrGenerator(roomId);
 
