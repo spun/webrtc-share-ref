@@ -1,4 +1,3 @@
-import React from 'react';
 import Link from 'next/link';
 
 const routes = [{
@@ -15,20 +14,17 @@ const routes = [{
   path: '/about',
 }];
 
-function Home() {
+
+export default function Home() {
   return (
     <ul>
       {
         routes.map((item) => (
-          <li>
-            <Link href={item.path} passHref>
-              <a href="replace">{item.name}</a>
-            </Link>
+          <li key={item.name}>
+            <Link href={item.path} passHref>{item.name}</Link>
           </li>
         ))
       }
     </ul>
   );
 }
-
-export default Home;

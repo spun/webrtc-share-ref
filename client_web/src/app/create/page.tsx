@@ -1,10 +1,11 @@
-import React from 'react';
+"use client"
+
 import Link from 'next/link';
 
-import useCreateRoom from '../hooks/useCreateRoom';
-import { useWebRTC } from '../hooks/useWebRTC';
+import useCreateRoom from '../../hooks/useCreateRoom';
+import { useWebRTC } from '../../hooks/useWebRTC';
 
-function RTC() {
+export default function Create() {
   const roomId = useCreateRoom();
   const [isConnected, messages, sendMessage] = useWebRTC(roomId, true);
 
@@ -40,5 +41,3 @@ function RTC() {
     </>
   );
 }
-
-export default RTC;

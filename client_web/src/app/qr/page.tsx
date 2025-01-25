@@ -1,9 +1,9 @@
-import React from 'react';
+"use client"
 
-import useCreateRoom from '../hooks/useCreateRoom';
-import useQrGenerator from '../hooks/useQrGenerator';
+import useCreateRoom from '../../hooks/useCreateRoom';
+import useQrGenerator from '../../hooks/useQrGenerator';
 
-function Create() {
+export default function Home() {
   const roomId = useCreateRoom();
   const [qrData, loading, error] = useQrGenerator(roomId);
 
@@ -30,5 +30,3 @@ function Create() {
     </>
   );
 }
-
-export default Create;

@@ -1,11 +1,12 @@
-import React from 'react';
-import { useRouter } from 'next/router';
-import { useWebRTC } from '../hooks/useWebRTC';
+"use client"
 
-const Join = () => {
+import { useSearchParams } from 'next/navigation'
+import { useWebRTC } from '../../hooks/useWebRTC';
+
+export default function Join() {
   // Get room id parameter from url /join?roomId=<value>
-  const router = useRouter();
-  const { roomId } = router.query;
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get('roomId');
 
   const [isConnected, messages, sendMessage] = useWebRTC(roomId, false);
 
@@ -37,6 +38,4 @@ const Join = () => {
       <button type="button" onClick={() => handleClick()}>Send cat</button>
     </>
   );
-};
-
-export default Join;
+}

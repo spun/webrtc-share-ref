@@ -1,4 +1,5 @@
-import { firebase, realTimeDatabase } from './firebase';
+import { realTimeDatabase } from './firebase';
+import { onChildAdded, ref, off, set, DatabaseReference, push, child } from "firebase/database";
 
 const db = realTimeDatabase;
 
@@ -16,9 +17,9 @@ class SignalingServer {
 
   peerMessagesFolder: string;
 
-  messagesFolderRef: firebase.database.Reference;
+  messagesFolderRef: DatabaseReference | null;
 
-  constructor(roomId, isInitiator) {
+  constructor(roomId: string, isInitiator: boolean) {
     this.roomId = roomId;
     this.isInitiator = isInitiator;
 
@@ -34,7 +35,7 @@ class SignalingServer {
     this.messagesFolderRef = null;
   }
 
-  async sendMessage({ description, candidate } : SignalingMessage) {
+  async sendMessage({ description, candidate }: SignalingMessage) {
     let message;
     if (description) {
       message = { description: JSON.stringify(description) };
@@ -43,15 +44,15 @@ class SignalingServer {
     }
 
     if (message) {
-      const newMessageRef = db.ref(`rooms/${this.roomId}/${this.myMessagesFolder}`).push();
-      await newMessageRef.set(message);
+      const newMessage = push(child(ref(db), `rooms/${this.roomId}/${this.myMessagesFolder}`));
+      await set(newMessage.ref, message);
     }
   }
 
-  setOnMessageListener(callback) {
+  setOnMessageListener(callback: (any: any) => void) {
     this.removeOnMessageListener();
-    this.messagesFolderRef = db.ref(`rooms/${this.roomId}/${this.peerMessagesFolder}`);
-    this.messagesFolderRef.on('child_added', async (data) => {
+    this.messagesFolderRef = ref(db, `rooms/${this.roomId}/${this.peerMessagesFolder}`);
+    onChildAdded(this.messagesFolderRef, (data) => {
       if (!data) return;
       const { description, candidate } = data.val();
       if (description) {
@@ -63,7 +64,7 @@ class SignalingServer {
   }
 
   removeOnMessageListener() {
-    if (this.messagesFolderRef) this.messagesFolderRef.off();
+    if (this.messagesFolderRef) off(this.messagesFolderRef)
   }
 
   static HOST = 'HOST';
