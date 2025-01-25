@@ -1,0 +1,35 @@
+# Dependabot configuration file
+
+version: 2
+updates:
+  # Web > npm
+  - package-ecosystem: "npm"
+    directory: "/client_web"
+    schedule:
+      interval: "monthly"
+    groups:
+      updates:
+        patterns: ["*"]
+
+  # Web > devcontainer
+  - package-ecosystem: "devcontainers"
+    directory: "/client_web"
+    schedule:
+      interval: "monthly"
+
+  # Android
+  - package-ecosystem: "gradle"
+    directory: "/client_android"
+    schedule:
+      interval: "monthly"
+    registries: "*"
+    groups:
+      # Group kotlin, ksp and compose compiler updates
+      kotlin:
+        patterns:
+          - "org.jetbrains.kotlin:*"
+          - "org.jetbrains.kotlin.*"
+          - "com.google.devtools.ksp"
+      # Group remaining updates
+      updates:
+        patterns: [ "*" ]
