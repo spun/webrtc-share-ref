@@ -49,7 +49,7 @@ class SignalingServer {
     }
   }
 
-  setOnMessageListener(callback: (any: any) => void) {
+  setOnMessageListener(callback: (message: SignalingMessage) => void) {
     this.removeOnMessageListener();
     this.messagesFolderRef = ref(db, `rooms/${this.roomId}/${this.peerMessagesFolder}`);
     onChildAdded(this.messagesFolderRef, (data) => {

@@ -19,7 +19,7 @@ function useCreateRoom() {
       // Set the title value
       await set(newRoom.ref, { title: 'title' });
       // Retrieve the id of the generated child
-      const roomKey = newRoom.key;
+      const roomKey = newRoom.key ?? "";
       // Update the roomId value with the child key
       setRoomId(roomKey);
     })();

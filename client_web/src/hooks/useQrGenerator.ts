@@ -4,9 +4,10 @@ import QRCode from 'qrcode';
 /**
  * Generate a qr image in base64
  * @param content The content of the qr
+ * @param contwidthent The width of gerenated qr
  * @returns A qr image in base64
  */
-function useQrGenerator(content: string) {
+function useQrGenerator(content: string, width: number): [string, boolean, object] {
   // Holds the data of the image we are going to generate
   const [qrData, setQrData] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,16 +25,16 @@ function useQrGenerator(content: string) {
 
       // Generate code
       try {
-        const url = await QRCode.toDataURL(content);
+        const url = await QRCode.toDataURL(content, { width: width });
         setQrData(url);
       } catch (err) {
-        setError(err);
+        setError({ error: `Error generating QR: ${err}` });
       } finally {
         setLoading(false);
       }
     }
     generateQrCode();
-  }, [content]);
+  }, [content, width]);
 
   return [qrData, loading, error];
 }
