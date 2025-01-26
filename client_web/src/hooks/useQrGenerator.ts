@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 /**
  * Generate a qr image in base64
  * @param content The content of the qr
- * @param contwidthent The width of gerenated qr
+ * @param width The width of gerenated qr
  * @returns A qr image in base64
  */
 function useQrGenerator(content: string, width: number): [string, boolean, object] {
