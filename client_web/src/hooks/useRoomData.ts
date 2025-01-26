@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
-import { firebase, realTimeDatabase } from '../utils/firebase';
+import { DataSnapshot, ref, off, onValue } from "firebase/database";
+
+import { realTimeDatabase } from '../utils/firebase';
+
 
 const db = realTimeDatabase;
 
@@ -14,20 +17,20 @@ function useRoomData(roomId: string) {
 
   useEffect(() => {
     // Update the title value from snapshot
-    function handleTitleChange(snapshot: firebase.database.DataSnapshot) {
+    function handleTitleChange(snapshot: DataSnapshot) {
       console.log(snapshot);
       setTitle(snapshot.val());
     }
 
     // Connect and listen for changes
-    const ref = db.ref(`rooms/${roomId}/title`);
-    ref.on('value', (snapshot) => {
+    const roomRef = ref(db, `rooms/${roomId}/title`);
+    onValue(roomRef, (snapshot: DataSnapshot) => {
       handleTitleChange(snapshot);
     });
 
     // Disconnect
-    return () => { ref.off(); };
-  }, []);
+    return () => { off(roomRef); };
+  }, [roomId]);
 
   return title;
 }

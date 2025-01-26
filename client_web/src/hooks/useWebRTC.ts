@@ -17,15 +17,15 @@ const Role = {
 function useWebRTC(
   roomId: string,
   isInitiator: boolean,
-) : [boolean, string[], ((m: string) => void)] {
+): [boolean, string[], ((m: string) => void)] {
   // Connection state
   const [isConnected, setIsConnected] = useState(false);
   // List of messages. Both sent and received
-  const [messages, setMessages] = useState([]);
+  const [messages, setMessages] = useState<string[]>([]);
   // The channel we are using to communicate
-  const [channel, setChannel] = useState(null);
+  const [channel, setChannel] = useState<RTCDataChannel | null>(null);
 
-  const sendMessageFunction = useCallback((message) => {
+  const sendMessageFunction = useCallback((message: string) => {
     setMessages((prevMessages) => [...prevMessages, message]);
     if (!channel) return;
     channel.send(message);
@@ -49,7 +49,9 @@ function useWebRTC(
 
     // send any ice candidates to the other peer
     peerConnection.onicecandidate = ({ candidate }) => {
-      signalingServer.sendMessage({ candidate });
+      if (candidate) {
+        signalingServer.sendMessage({ candidate });
+      }
     };
 
     // let the "negotiationneeded" event trigger offer generation
@@ -58,7 +60,9 @@ function useWebRTC(
         try {
           makingOffer = true;
           await peerConnection.setLocalDescription(await peerConnection.createOffer());
-          signalingServer.sendMessage({ description: peerConnection.localDescription });
+          if (peerConnection.localDescription) {
+            signalingServer.sendMessage({ description: peerConnection.localDescription });
+          }
         } catch (err) {
           console.error(err);
         }
@@ -92,7 +96,9 @@ function useWebRTC(
 
           if (description.type === 'offer') {
             await peerConnection.setLocalDescription(await peerConnection.createAnswer());
-            signalingServer.sendMessage({ description: peerConnection.localDescription });
+            if (peerConnection.localDescription) {
+              signalingServer.sendMessage({ description: peerConnection.localDescription });
+            }
           }
         } else if (candidate) {
           try {
@@ -107,11 +113,10 @@ function useWebRTC(
     });
 
     // Disconnect
-    // eslint-disable-next-line consistent-return
     return () => {
       signalingServer.removeOnMessageListener();
     };
-  }, [roomId]);
+  }, [roomId, isInitiator]);
 
   return [isConnected, messages, sendMessageFunction];
 }

@@ -1,11 +1,13 @@
-import React from 'react';
-import { useRouter } from 'next/router';
-import { useWebRTC } from '../hooks/useWebRTC';
+"use client"
 
-const Join = () => {
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
+import { useWebRTC } from '../../hooks/useWebRTC';
+
+function Join() {
   // Get room id parameter from url /join?roomId=<value>
-  const router = useRouter();
-  const { roomId } = router.query;
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get('roomId') ?? "";
 
   const [isConnected, messages, sendMessage] = useWebRTC(roomId, false);
 
@@ -37,6 +39,16 @@ const Join = () => {
       <button type="button" onClick={() => handleClick()}>Send cat</button>
     </>
   );
-};
+}
 
-export default Join;
+/**
+ * Join should be wrapped in a suspense boundary
+ * Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+ */
+export default function JoinWrapper() {
+  return (
+    <Suspense>
+      <Join />
+    </Suspense>
+  )
+}
