@@ -2,7 +2,7 @@
 androidGradlePlugin = "8.8.0"
 androidxConstraintlayout = "2.2.0"
 androidxLifecycle = "2.8.7"
-androidxNavigation = "2.8.5"
+androidxNavigation = "2.8.6"
 androidxTestEspresso = "3.6.1"
 androidxTestExtJunit = "1.2.1"
 firebaseBoM = "33.8.0"
