@@ -6,8 +6,10 @@ import com.spundev.webrtcshare.extensions.setRemoteDescriptionSuspend
 import com.spundev.webrtcshare.repositories.RealTimeSignalingRepository
 import com.spundev.webrtcshare.repositories.SignalingMessage.SignalingCandidate
 import com.spundev.webrtcshare.repositories.SignalingMessage.SignalingDescription
-import kotlinx.coroutines.channels.ConflatedBroadcastChannel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.webrtc.DataChannel
 import org.webrtc.IceCandidate
@@ -19,10 +21,12 @@ import java.nio.ByteBuffer
 class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
 
     // Connection state
-    val isConnected = ConflatedBroadcastChannel(false)
+    private val _isConnected = MutableStateFlow(false)
+    val isConnected: StateFlow<Boolean> = _isConnected
 
     // List of messages sent and received
-    val messages = ConflatedBroadcastChannel(listOf<String>())
+    private val _messages = MutableStateFlow(listOf<String>())
+    val messages: StateFlow<List<String>> = _messages
 
     // Signaling server we use to kick start the WebRTC connection
     val signalingRepository = RealTimeSignalingRepository(isInitiator)
@@ -96,7 +100,7 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
                     val destinationByteArray = ByteArray(buffer.data.limit())
                     buffer.data.get(destinationByteArray)
                     val message = String(destinationByteArray)
-                    messages.trySend(messages.value + message).isSuccess
+                    _messages.update { it + message }
                 }
             }
 
@@ -108,12 +112,12 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
                 Log.d(TAG, "onStateChange: ")
                 if (dataChannel.state() == DataChannel.State.OPEN) {
                     // Notify connection change
-                    isConnected.trySend(true).isSuccess
+                    _isConnected.value = true
                     // Save channel
                     myDataChannel = dataChannel
                 } else {
                     // Notify connection change
-                    isConnected.trySend(false).isSuccess
+                    _isConnected.value = false
                 }
             }
         })
@@ -157,7 +161,7 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
             val buffer = ByteBuffer.wrap(message.toByteArray())
             dataChannel.send(DataChannel.Buffer(buffer, false))
             // Also update our messages list with the new message
-            messages.trySend(messages.value + message).isSuccess
+            _messages.update { it + message }
         }
     }
 }

@@ -6,7 +6,6 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.liveData
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.utils.WebRTCConnection
-import kotlinx.coroutines.channels.consumeEach
 import kotlinx.coroutines.launch
 import org.webrtc.PeerConnectionFactory
 
@@ -17,12 +16,12 @@ class CreateViewModel(val app: Application) : AndroidViewModel(app) {
 
     // isConnected value
     val isConnected: LiveData<Boolean> = liveData {
-        webRTCConnection.isConnected.consumeEach { emit(it) }
+        webRTCConnection.isConnected.collect { emit(it) }
     }
 
     // List of messages sent and received
     val messages: LiveData<List<String>> = liveData {
-        webRTCConnection.messages.consumeEach { emit(it) }
+        webRTCConnection.messages.collect { emit(it) }
     }
 
     init {
