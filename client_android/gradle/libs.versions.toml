@@ -23,7 +23,7 @@ androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-view
 androidx-navigation-fragment-ktx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "androidxNavigation" }
 androidx-navigation-ui-ktx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "androidxNavigation" }
 firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBoM" }
-firebase-database-ktx = { module = "com.google.firebase:firebase-database-ktx" }
+firebase-database = { module = "com.google.firebase:firebase-database" }
 getstream-webrtc-android = { module = "io.getstream:stream-webrtc-android", version.ref = "getstreamWebrtc" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 materialComponents = { group = "com.google.android.material", name = "material", version.ref = "materialComponents" }

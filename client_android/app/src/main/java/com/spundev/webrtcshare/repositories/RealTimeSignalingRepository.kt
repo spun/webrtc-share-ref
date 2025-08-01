@@ -1,9 +1,9 @@
 package com.spundev.webrtcshare.repositories
 
+import com.google.firebase.Firebase
 import com.google.firebase.database.DataSnapshot
-import com.google.firebase.database.ktx.database
-import com.google.firebase.database.ktx.getValue
-import com.google.firebase.ktx.Firebase
+import com.google.firebase.database.database
+import com.google.firebase.database.getValue
 import com.spundev.webrtcshare.model.Candidate
 import com.spundev.webrtcshare.model.Description
 import com.spundev.webrtcshare.utils.MyChildEventListener
@@ -60,6 +60,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                 )
                 RealTimeDatabaseMessage(candidate = stringCandidate)
             }
+
             is SignalingMessage.SignalingDescription -> {
                 // Description to json string
                 val stringDescription = jsonSerializer.encodeToString(
@@ -125,6 +126,7 @@ class RealTimeSignalingRepository(isInitiator: Boolean) : SignalingRepository {
                             )
                             trySend(SignalingMessage.SignalingCandidate(candidate)).isSuccess
                         }
+
                         else -> { /* Unknown message format. Do nothing */
                         }
                     }
