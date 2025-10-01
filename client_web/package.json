@@ -9,8 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "firebase": "^12.2.1",
-    "next": "15.5.2",
+    "firebase": "^12.3.0",
+    "next": "15.5.4",
     "qrcode": "^1.5.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
@@ -22,7 +22,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "15.5.2",
+    "eslint-config-next": "15.5.4",
     "typescript": "^5"
   }
 }
