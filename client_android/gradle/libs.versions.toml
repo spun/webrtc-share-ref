@@ -1,11 +1,11 @@
 [versions]
-androidGradlePlugin = "8.13.1"
+androidGradlePlugin = "8.13.2"
 androidxConstraintlayout = "2.2.1"
 androidxLifecycle = "2.10.0"
 androidxNavigation = "2.9.6"
 androidxTestEspresso = "3.7.0"
 androidxTestExtJunit = "1.3.0"
-firebaseBoM = "34.6.0"
+firebaseBoM = "34.7.0"
 getstreamWebrtc = "1.3.10"
 googleServicesPlugin = "4.4.4"
 junit = "4.13.2"
