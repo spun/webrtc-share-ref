@@ -2,6 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.compose.compiler)
     alias(libs.plugins.jetbrains.kotlin.android)
     alias(libs.plugins.google.services)
     alias(libs.plugins.kotlin.serialization)
@@ -37,6 +38,7 @@ android {
     }
 
     buildFeatures {
+        compose = true
         viewBinding = true
     }
 
@@ -53,6 +55,16 @@ android {
 }
 
 dependencies {
+
+    implementation(platform(libs.androidx.compose.bom))
+
+    // Activity
+    implementation(libs.androidx.activity.compose)
+    // Compose
+    implementation(libs.androidx.compose.material3)
+
+    // ---
+
     // Import the Firebase BoM
     implementation(platform(libs.firebase.bom))
 
