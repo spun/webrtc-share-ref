@@ -3,7 +3,7 @@ package com.spundev.webrtcshare.utils
 import android.util.Log
 import com.spundev.webrtcshare.extensions.createAndSetLocalDescription
 import com.spundev.webrtcshare.extensions.setRemoteDescriptionSuspend
-import com.spundev.webrtcshare.repositories.RealTimeSignalingRepository
+import com.spundev.webrtcshare.repositories.LocalSignalingRepository
 import com.spundev.webrtcshare.repositories.SignalingMessage.SignalingCandidate
 import com.spundev.webrtcshare.repositories.SignalingMessage.SignalingDescription
 import kotlinx.coroutines.coroutineScope
@@ -29,7 +29,7 @@ class WebRTCConnection(val roomId: String, val isInitiator: Boolean) {
     val messages: StateFlow<List<String>> = _messages
 
     // Signaling server we use to kick start the WebRTC connection
-    val signalingRepository = RealTimeSignalingRepository(isInitiator)
+    val signalingRepository = LocalSignalingRepository(isInitiator)
 
     // The DataChannel used to send an receive messages
     var myDataChannel: DataChannel? = null

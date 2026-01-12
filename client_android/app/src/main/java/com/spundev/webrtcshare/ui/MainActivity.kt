@@ -14,6 +14,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.spundev.webrtcshare.ui.screens.createRoom.CreateRoomRoute
 import com.spundev.webrtcshare.ui.screens.joinRoom.JoinRoomRoute
+import com.spundev.webrtcshare.ui.screens.localDemo.LocalDemoRoute
 import com.spundev.webrtcshare.ui.screens.main.MainRoute
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -21,6 +22,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 object MainRoute : NavKey
+
+@Serializable
+object LocalDemoRoute : NavKey
 
 @Serializable
 object CreateRoomRoute : NavKey
@@ -47,7 +51,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun NavProvider() {
 
-    val backStack = rememberNavBackStack(MainRoute)
+    val backStack = rememberNavBackStack(LocalDemoRoute)
     NavDisplay(
         backStack = backStack,
         entryDecorators = listOf(
@@ -59,9 +63,13 @@ private fun NavProvider() {
         entryProvider = entryProvider {
             entry<MainRoute> {
                 MainRoute(
+                    onNavigateToLocalDemo = { backStack.add(LocalDemoRoute) },
                     onNavigateToCreate = { backStack.add(CreateRoomRoute) },
                     onNavigateToJoin = { backStack.add(JoinRoomRoute) },
                 )
+            }
+            entry<LocalDemoRoute> {
+                LocalDemoRoute(onNavigateBack = { backStack.removeLastOrNull() })
             }
             entry<CreateRoomRoute> {
                 CreateRoomRoute(onNavigateBack = { backStack.removeLastOrNull() })
