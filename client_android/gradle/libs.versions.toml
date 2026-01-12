@@ -13,6 +13,7 @@ hilt = "2.59.1"
 kotlin = "2.3.10"
 kotlinxSerialization = "1.10.0"
 ksp = "2.3.5"
+timber = "5.0.1"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
@@ -31,6 +32,7 @@ getstream-webrtc-android = { module = "io.getstream:stream-webrtc-android", vers
 hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 # TESTS
 androidx-test-ext = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "androidxTestExt" }
 

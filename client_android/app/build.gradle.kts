@@ -50,6 +50,7 @@ android {
         }
     }
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -88,6 +89,8 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    // Timber
+    implementation(libs.timber)
     // WebRTC
     implementation(libs.getstream.webrtc.android)
 

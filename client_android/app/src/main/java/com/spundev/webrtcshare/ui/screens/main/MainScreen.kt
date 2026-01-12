@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 
 @Composable
 fun MainRoute(
+    onNavigateToLocalDemo: () -> Unit,
     onNavigateToCreate: () -> Unit,
     onNavigateToJoin: () -> Unit,
 ) {
@@ -19,6 +20,9 @@ fun MainRoute(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.fillMaxSize()
     ) {
+        Button(onClick = onNavigateToLocalDemo) {
+            Text("Local demo")
+        }
         Button(onClick = onNavigateToCreate) {
             Text("Create room")
         }
