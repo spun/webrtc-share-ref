@@ -92,6 +92,10 @@ class MyPeerConnection(
     fun createDataChannel(label: String, init: DataChannel.Init): DataChannel {
         return connection.createDataChannel(label, init)
     }
+
+    fun close() {
+        connection.close()
+    }
 }
 
 

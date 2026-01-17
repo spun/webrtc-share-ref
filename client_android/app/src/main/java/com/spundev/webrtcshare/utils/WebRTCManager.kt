@@ -7,6 +7,7 @@ import com.spundev.webrtcshare.repositories.SignalingRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -104,7 +105,7 @@ class WebRTCManager(
     /**
      * Create DataChannel and start listening the signaling server.
      */
-    fun start(isInitiator: Boolean) {
+    fun start(isInitiator: Boolean): AutoCloseable {
         this.isInitiator = isInitiator
         Timber.d("$logsName:[start]")
 
@@ -117,6 +118,8 @@ class WebRTCManager(
         dataChannel = peerConnection.createDataChannel("chat", localDataChannelInit)
         sessionScope.launch { collectDataChannelEvents() }
         sessionScope.launch { collectSignalingServerEvents() }
+
+        return AutoCloseable { close() }
     }
 
     /**
@@ -203,5 +206,11 @@ class WebRTCManager(
         dataChannel.send(DataChannel.Buffer(buffer, false))
         // Also update our messages list with the new message
         _messages.update { it + message }
+    }
+
+    fun close() {
+        dataChannel.close()
+        peerConnection.close()
+        sessionScope.cancel()
     }
 }
