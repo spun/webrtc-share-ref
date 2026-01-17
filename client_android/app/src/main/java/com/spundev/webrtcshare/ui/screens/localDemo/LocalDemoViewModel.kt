@@ -2,41 +2,36 @@ package com.spundev.webrtcshare.ui.screens.localDemo
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.spundev.webrtcshare.utils.WebRTCConnection
+import com.spundev.webrtcshare.di.Local
+import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import org.webrtc.PeerConnectionFactory
 import javax.inject.Inject
 
 @HiltViewModel
 class LocalDemoViewModel @Inject constructor(
-    initializationOptions: PeerConnectionFactory.InitializationOptions?
+    @param:Local val localWebRTCManager: WebRTCManager,
+    @param:Local val remoteWebRTCManager: WebRTCManager,
 ) : ViewModel() {
-
-    // WebRTC Connection helpers
-    private val localWebRTCConnection = WebRTCConnection("room_002", true)
-    private val remoteWebRTCConnection = WebRTCConnection("room_002", false)
 
     init {
         // Initialization
-        PeerConnectionFactory.initialize(initializationOptions)
-
         viewModelScope.launch {
-            localWebRTCConnection.start()
+            localWebRTCManager.start(true)
         }
         viewModelScope.launch {
-            remoteWebRTCConnection.start()
+            remoteWebRTCManager.start(false)
         }
     }
 
     val uiState = combine(
-        localWebRTCConnection.isConnected,
-        localWebRTCConnection.messages,
-        remoteWebRTCConnection.isConnected,
-        remoteWebRTCConnection.messages,
+        localWebRTCManager.isConnected,
+        localWebRTCManager.messages,
+        remoteWebRTCManager.isConnected,
+        remoteWebRTCManager.messages,
     ) { localIsConnected, localMessages, remoteIsConnected, remoteMessages ->
         LocalDemoUiState.Success(
             localClient = DemoClientData(
@@ -55,11 +50,11 @@ class LocalDemoViewModel @Inject constructor(
     )
 
     fun sendMessageFromLocal() {
-        localWebRTCConnection.sendMessage("From local")
+        localWebRTCManager.sendMessage("From local")
     }
 
     fun sendMessageFromRemote() {
-        remoteWebRTCConnection.sendMessage("From remote")
+        remoteWebRTCManager.sendMessage("From remote")
     }
 }
 
