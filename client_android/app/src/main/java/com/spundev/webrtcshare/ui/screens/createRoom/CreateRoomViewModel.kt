@@ -8,7 +8,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -31,9 +30,7 @@ class CreateRoomViewModel @Inject constructor(
     )
 
     init {
-        viewModelScope.launch {
-            webRTCManager.start(isInitiator = true)
-        }
+        addCloseable(webRTCManager.start(isInitiator = true))
     }
 
     fun sendMessage(message: String) {
