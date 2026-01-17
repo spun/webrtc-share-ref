@@ -5,23 +5,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
+import javax.inject.Inject
 
-data class LocalSignalingMessage(
+private data class LocalSignalingMessage(
     val fromInitiator: Boolean,
     val roomId: String,
     val message: SignalingMessage
 )
 
 /**
- * Just a local implementation of the RealTimeSignalingRepository until we refactor the way
- * we use signaling servers.
+ * Local implementation of SignalingRepository
  */
-class LocalSignalingRepository(val isInitiator: Boolean) : SignalingRepository {
+class LocalSignalingRepository @Inject constructor() : SignalingRepository {
 
     // Use dedicated scope instead of making sendMessage suspend to avoid blocks.
     // With a suspending "sendMessage", if a collector calls "sendMessage" from within their collect
@@ -36,32 +39,47 @@ class LocalSignalingRepository(val isInitiator: Boolean) : SignalingRepository {
     // "sendMessage" from the client scope and use our own.
     private val signalingScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private val name = if (isInitiator) "LOCAL" else "REMOTE"
+    // Name for this SignalingRepository in logs.
+    // This is useful when we have more than one WebRTCManager in the same screen (see LocalDemo)
+    private fun getLogsName(isInitiator: Boolean) = if (isInitiator) "Main" else "Seco"
 
     override fun sendMessage(
+        isInitiator: Boolean,
         roomId: String,
         message: SignalingMessage
     ) {
+        val name = getLogsName(isInitiator)
         signalingScope.launch {
             Timber.d("$name@SEND: ($roomId) $message")
-            localSharedFlow.emit(
-                LocalSignalingMessage(
-                    fromInitiator = isInitiator,
-                    roomId = roomId,
-                    message = message
-                )
+            val message = LocalSignalingMessage(
+                fromInitiator = isInitiator,
+                roomId = roomId,
+                message = message
             )
+            backlogStateFlow.update { it + message }
+            activeSharedFlow.emit(message)
         }
     }
 
-    override fun receiveMessagesFlow(roomId: String): Flow<SignalingMessage> {
-        return localSharedFlow
+    override fun receiveMessagesFlow(
+        isInitiator: Boolean,
+        roomId: String
+    ): Flow<SignalingMessage> {
+        val name = getLogsName(isInitiator)
+        return activeSharedFlow
+            .onStart {
+                // Emit backlog content to the collector
+                backlogStateFlow.value.forEach {
+                    emit(it)
+                }
+            }
             .filter { it.fromInitiator != isInitiator && it.roomId == roomId }
             .map { it.message }
             .onEach { message -> Timber.d("$name@RECEIVE: ($roomId) $message") }
     }
 
     companion object {
-        private val localSharedFlow = MutableSharedFlow<LocalSignalingMessage>()
+        private val backlogStateFlow = MutableStateFlow<List<LocalSignalingMessage>>(emptyList())
+        private val activeSharedFlow = MutableSharedFlow<LocalSignalingMessage>()
     }
 }

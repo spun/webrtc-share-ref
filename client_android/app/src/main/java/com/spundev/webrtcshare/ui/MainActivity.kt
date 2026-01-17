@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun NavProvider() {
 
-    val backStack = rememberNavBackStack(LocalDemoRoute)
+    val backStack = rememberNavBackStack(MainRoute)
     NavDisplay(
         backStack = backStack,
         entryDecorators = listOf(
