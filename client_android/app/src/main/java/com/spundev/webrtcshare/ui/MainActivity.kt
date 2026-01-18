@@ -4,8 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalDensity
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -17,6 +20,8 @@ import com.spundev.webrtcshare.ui.screens.joinRoom.JoinRoomRoute
 import com.spundev.webrtcshare.ui.screens.localDemo.LocalDemoRoute
 import com.spundev.webrtcshare.ui.screens.main.MainRoute
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
+import com.spundev.webrtcshare.utils.materialSharedAxisIn
+import com.spundev.webrtcshare.utils.materialSharedAxisOut
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.serialization.Serializable
 
@@ -50,7 +55,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 private fun NavProvider() {
-
+    val density = LocalDensity.current
     val backStack = rememberNavBackStack(MainRoute)
     NavDisplay(
         backStack = backStack,
@@ -77,6 +82,37 @@ private fun NavProvider() {
             entry<JoinRoomRoute> {
                 JoinRoomRoute(onNavigateBack = { backStack.removeLastOrNull() })
             }
+
+        },
+        transitionSpec = {
+            // Slide in from right when navigating forward
+            materialSharedAxisIn(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Left,
+                density = density
+            ) togetherWith materialSharedAxisOut(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Left,
+                density = density
+            )
+        },
+        popTransitionSpec = {
+            // Slide in from left when navigating back
+            materialSharedAxisIn(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Right,
+                density = density
+            ) togetherWith materialSharedAxisOut(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Right,
+                density = density
+            )
+        },
+        predictivePopTransitionSpec = {
+            // Slide in from left when navigating back
+            materialSharedAxisIn(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Right,
+                density = density
+            ) togetherWith materialSharedAxisOut(
+                slideDirection = AnimatedContentTransitionScope.SlideDirection.Right,
+                density = density
+            )
         }
     )
 }
