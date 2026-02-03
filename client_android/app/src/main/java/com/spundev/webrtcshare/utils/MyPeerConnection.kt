@@ -67,7 +67,7 @@ class MyPeerConnection(
         pendingIceCandidatesMutex.withLock {
             pendingIceCandidates.forEach { iceCandidate ->
                 Timber.d("$name:[setRemoteDescription] pendingIceCandidate: $iceCandidate")
-                connection.addIceCandidateSuspend(iceCandidate)
+                addIceCandidate(iceCandidate)
             }
             pendingIceCandidates.clear()
         }
@@ -84,8 +84,11 @@ class MyPeerConnection(
             return
         }
         Timber.d("$name:[addIceCandidate] rtcIceCandidate: $iceCandidate")
-        return connection.addIceCandidateSuspend(iceCandidate).also {
-            Timber.d("$name:[addIceCandidate] completed: $it")
+        try {
+            connection.addIceCandidateSuspend(iceCandidate)
+            Timber.d("$name:[addIceCandidate] completed")
+        } catch (e: RuntimeException) {
+            Timber.w(e, "$name:[addIceCandidate] error adding IceCandidate: $iceCandidate")
         }
     }
 
