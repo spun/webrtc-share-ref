@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.joinRoom
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Realtime
+import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,8 +13,11 @@ import javax.inject.Inject
 
 @HiltViewModel
 class JoinRoomViewModel @Inject constructor(
-    @param:Realtime val webRTCManager: WebRTCManager,
+    webRTCManagerFactory: WebRTCManager.Factory,
+    @Realtime signalingRepository: SignalingRepository
 ) : ViewModel() {
+
+    private val webRTCManager = webRTCManagerFactory.create(signalingRepository)
 
     // isConnected value
     val isConnected: StateFlow<Boolean> = webRTCManager.isConnected.stateIn(

@@ -43,6 +43,9 @@ class LocalSignalingRepository @Inject constructor() : SignalingRepository {
     // This is useful when we have more than one WebRTCManager in the same screen (see LocalDemo)
     private fun getLogsName(isInitiator: Boolean) = if (isInitiator) "Main" else "Seco"
 
+    private val backlogStateFlow = MutableStateFlow<List<LocalSignalingMessage>>(emptyList())
+    private val activeSharedFlow = MutableSharedFlow<LocalSignalingMessage>()
+
     override fun sendMessage(
         isInitiator: Boolean,
         roomId: String,
@@ -76,10 +79,5 @@ class LocalSignalingRepository @Inject constructor() : SignalingRepository {
             .filter { it.fromInitiator != isInitiator && it.roomId == roomId }
             .map { it.message }
             .onEach { message -> Timber.d("$name@RECEIVE: ($roomId) $message") }
-    }
-
-    companion object {
-        private val backlogStateFlow = MutableStateFlow<List<LocalSignalingMessage>>(emptyList())
-        private val activeSharedFlow = MutableSharedFlow<LocalSignalingMessage>()
     }
 }

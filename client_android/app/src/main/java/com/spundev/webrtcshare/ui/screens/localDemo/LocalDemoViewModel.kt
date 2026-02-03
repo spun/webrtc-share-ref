@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.localDemo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Local
+import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -12,9 +13,13 @@ import javax.inject.Inject
 
 @HiltViewModel
 class LocalDemoViewModel @Inject constructor(
-    @param:Local val localWebRTCManager: WebRTCManager,
-    @param:Local val remoteWebRTCManager: WebRTCManager,
+    webRTCManagerFactory: WebRTCManager.Factory,
+    @Local signalingRepository: SignalingRepository,
 ) : ViewModel() {
+
+    // Use Factory to create two WebRTCManager with a shared signaling repository
+    private var localWebRTCManager = webRTCManagerFactory.create(signalingRepository)
+    private var remoteWebRTCManager = webRTCManagerFactory.create(signalingRepository)
 
     init {
         // Initialization

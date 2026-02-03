@@ -4,6 +4,9 @@ import com.spundev.webrtcshare.extensions.DataChannelEvent
 import com.spundev.webrtcshare.extensions.observerFlow
 import com.spundev.webrtcshare.repositories.SignalingMessage
 import com.spundev.webrtcshare.repositories.SignalingRepository
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,11 +23,16 @@ import timber.log.Timber
 import java.nio.ByteBuffer
 import kotlin.properties.Delegates
 
-class WebRTCManager(
+class WebRTCManager @AssistedInject constructor(
     rtcConnectionFactory: PeerConnectionFactory,
     rtcConfiguration: PeerConnection.RTCConfiguration,
-    val signalingRepository: SignalingRepository
+    @Assisted val signalingRepository: SignalingRepository
 ) {
+    @AssistedFactory
+    interface Factory {
+        fun create(signalingRepository: SignalingRepository): WebRTCManager
+    }
+
     private val sessionScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     // Defines if this WebRTCManager was the one that started the process
