@@ -36,6 +36,8 @@ private data class Candidate(val candidate: String, val sdpMid: String, val sdpM
  * RealtimeDatabase message format.
  * We store a description or a candidate as JSON strings.
  */
+// NOTE: This class is referenced by a ProGuard/R8 rule.
+//  Make sure the rule is still valid if this is modified.
 private data class RealTimeDatabaseMessage(
     val description: String? = null,
     val candidate: String? = null

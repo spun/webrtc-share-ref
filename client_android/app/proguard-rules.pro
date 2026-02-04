@@ -19,3 +19,10 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# CUSTOM RULES
+
+# Firebase will map these class fields to JSON keys automatically.
+# If R8 renames any of these fields, the final message will use an unexpected format and our
+# validation Rules will reject them.
+-keepclassmembernames class com.spundev.webrtcshare.repositories.RealTimeDatabaseMessage { *; }
