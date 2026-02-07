@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
+import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
@@ -68,19 +69,19 @@ private fun NavProvider() {
         entryProvider = entryProvider {
             entry<MainRoute> {
                 MainRoute(
-                    onNavigateToLocalDemo = { backStack.add(LocalDemoRoute) },
-                    onNavigateToCreate = { backStack.add(CreateRoomRoute) },
-                    onNavigateToJoin = { backStack.add(JoinRoomRoute) },
+                    onNavigateToLocalDemo = dropUnlessResumed { backStack.add(LocalDemoRoute) },
+                    onNavigateToCreate = dropUnlessResumed { backStack.add(CreateRoomRoute) },
+                    onNavigateToJoin = dropUnlessResumed { backStack.add(JoinRoomRoute) },
                 )
             }
             entry<LocalDemoRoute> {
-                LocalDemoRoute(onNavigateBack = { backStack.removeLastOrNull() })
+                LocalDemoRoute(onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() })
             }
             entry<CreateRoomRoute> {
-                CreateRoomRoute(onNavigateBack = { backStack.removeLastOrNull() })
+                CreateRoomRoute(onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() })
             }
             entry<JoinRoomRoute> {
-                JoinRoomRoute(onNavigateBack = { backStack.removeLastOrNull() })
+                JoinRoomRoute(onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() })
             }
 
         },
