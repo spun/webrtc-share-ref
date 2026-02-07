@@ -152,12 +152,13 @@ class WebRTCManager @AssistedInject constructor(
                 }
 
                 is DataChannelEvent.Message -> {
-                    Timber.d("$logsName:[onMessage] ${dataChannel.state() == DataChannel.State.OPEN}")
+                    Timber.d("$logsName:[onMessage] isOpen: ${dataChannel.state() == DataChannel.State.OPEN}")
                     val buffer = event.buffer
                     if (buffer?.binary == false) {
                         val destinationByteArray = ByteArray(buffer.data.limit())
                         buffer.data.get(destinationByteArray)
                         val message = String(destinationByteArray)
+                        Timber.d("$logsName:[onMessage] message: $message")
                         _messages.update { it + message }
                     }
                 }
