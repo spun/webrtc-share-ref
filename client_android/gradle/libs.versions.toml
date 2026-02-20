@@ -12,7 +12,7 @@ googleServicesPlugin = "4.4.4"
 hilt = "2.59.1"
 kotlin = "2.3.10"
 kotlinxSerialization = "1.10.0"
-ksp = "2.3.5"
+ksp = "2.3.6"
 timber = "5.0.1"
 
 [libraries]
