@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
+import kotlin.random.Random
 
 private data class LocalSignalingMessage(
     val fromInitiator: Boolean,
@@ -45,6 +46,10 @@ class LocalSignalingRepository @Inject constructor() : SignalingRepository {
 
     private val backlogStateFlow = MutableStateFlow<List<LocalSignalingMessage>>(emptyList())
     private val activeSharedFlow = MutableSharedFlow<LocalSignalingMessage>()
+
+    override suspend fun createRoom(): String {
+        return Random.nextInt().toString()
+    }
 
     override fun sendMessage(
         isInitiator: Boolean,

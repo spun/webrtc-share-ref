@@ -9,6 +9,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -23,8 +24,11 @@ class LocalDemoViewModel @Inject constructor(
 
     init {
         // Initialization
-        addCloseable(localWebRTCManager.start(true))
-        addCloseable(remoteWebRTCManager.start(false))
+        viewModelScope.launch {
+            val roomId = signalingRepository.createRoom()
+            addCloseable(localWebRTCManager.start(isInitiator = true, roomId = roomId))
+            addCloseable(remoteWebRTCManager.start(isInitiator = false, roomId = roomId))
+        }
     }
 
     val uiState = combine(

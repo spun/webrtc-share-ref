@@ -6,9 +6,12 @@ import com.spundev.webrtcshare.di.Realtime
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
@@ -18,6 +21,9 @@ class CreateRoomViewModel @Inject constructor(
 ) : ViewModel() {
 
     private val webRTCManager = webRTCManagerFactory.create(signalingRepository)
+
+    private val _roomId: MutableStateFlow<String?> = MutableStateFlow(null)
+    val roomId: StateFlow<String?> = _roomId.asStateFlow()
 
     // isConnected value
     val isConnected: StateFlow<Boolean> = webRTCManager.isConnected.stateIn(
@@ -34,7 +40,11 @@ class CreateRoomViewModel @Inject constructor(
     )
 
     init {
-        addCloseable(webRTCManager.start(isInitiator = true))
+        viewModelScope.launch {
+            val newRoomId = signalingRepository.createRoom()
+            addCloseable(webRTCManager.start(isInitiator = true, roomId = newRoomId))
+            _roomId.value = newRoomId
+        }
     }
 
     fun sendMessage(message: String) {

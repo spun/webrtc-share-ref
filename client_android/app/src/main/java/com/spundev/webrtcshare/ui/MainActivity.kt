@@ -9,6 +9,7 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.dropUnlessResumed
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
 import androidx.navigation3.runtime.NavKey
@@ -17,7 +18,9 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.spundev.webrtcshare.ui.screens.createRoom.CreateRoomRoute
+import com.spundev.webrtcshare.ui.screens.joinRequest.JoinRequestRoute
 import com.spundev.webrtcshare.ui.screens.joinRoom.JoinRoomRoute
+import com.spundev.webrtcshare.ui.screens.joinRoom.JoinRoomViewModel
 import com.spundev.webrtcshare.ui.screens.localDemo.LocalDemoRoute
 import com.spundev.webrtcshare.ui.screens.main.MainRoute
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
@@ -36,7 +39,10 @@ object LocalDemoRoute : NavKey
 object CreateRoomRoute : NavKey
 
 @Serializable
-object JoinRoomRoute : NavKey
+object JoinRequestRoute : NavKey
+
+@Serializable
+data class JoinRoomRoute(val roomId: String) : NavKey
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -71,7 +77,7 @@ private fun NavProvider() {
                 MainRoute(
                     onNavigateToLocalDemo = dropUnlessResumed { backStack.add(LocalDemoRoute) },
                     onNavigateToCreate = dropUnlessResumed { backStack.add(CreateRoomRoute) },
-                    onNavigateToJoin = dropUnlessResumed { backStack.add(JoinRoomRoute) },
+                    onNavigateToJoinRequest = dropUnlessResumed { backStack.add(JoinRequestRoute) },
                 )
             }
             entry<LocalDemoRoute> {
@@ -80,10 +86,22 @@ private fun NavProvider() {
             entry<CreateRoomRoute> {
                 CreateRoomRoute(onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() })
             }
-            entry<JoinRoomRoute> {
-                JoinRoomRoute(onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() })
+            entry<JoinRequestRoute> {
+                JoinRequestRoute(
+                    onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
+                    onNavigateToRoom = { roomId ->
+                        backStack.add(JoinRoomRoute(roomId))
+                    }
+                )
             }
-
+            entry<JoinRoomRoute> {
+                JoinRoomRoute(
+                    onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
+                    viewModel = hiltViewModel<JoinRoomViewModel, JoinRoomViewModel.Factory>(
+                        creationCallback = { factory -> factory.create(it.roomId) }
+                    )
+                )
+            }
         },
         transitionSpec = {
             // Slide in from right when navigating forward
