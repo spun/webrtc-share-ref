@@ -5,17 +5,25 @@ import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Realtime
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
-import javax.inject.Inject
 
-@HiltViewModel
-class JoinRoomViewModel @Inject constructor(
+@HiltViewModel(assistedFactory = JoinRoomViewModel.Factory::class)
+class JoinRoomViewModel @AssistedInject constructor(
+    @Assisted val roomId: String,
     webRTCManagerFactory: WebRTCManager.Factory,
     @Realtime signalingRepository: SignalingRepository
 ) : ViewModel() {
+
+    @AssistedFactory
+    interface Factory {
+        fun create(roomId: String): JoinRoomViewModel
+    }
 
     private val webRTCManager = webRTCManagerFactory.create(signalingRepository)
 
@@ -34,7 +42,7 @@ class JoinRoomViewModel @Inject constructor(
     )
 
     init {
-        addCloseable(webRTCManager.start(isInitiator = false))
+        addCloseable(webRTCManager.start(isInitiator = false, roomId = roomId))
     }
 
     fun sendMessage(message: String) {

@@ -58,6 +58,13 @@ class RealTimeSignalingRepository @Inject constructor() : SignalingRepository {
 
     private val jsonSerializer = Json { ignoreUnknownKeys = true }
 
+    override suspend fun createRoom(): String {
+        val newRoomRef = db
+            .child("rooms")
+            .push()
+        return requireNotNull(newRoomRef.key)
+    }
+
     /**
      * Send a new message to the other end using our database.
      * @param roomId The id of the room that we are using for the signaling

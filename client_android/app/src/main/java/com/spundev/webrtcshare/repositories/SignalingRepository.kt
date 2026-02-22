@@ -10,6 +10,7 @@ sealed class SignalingMessage {
 }
 
 interface SignalingRepository {
+    suspend fun createRoom(): String
     fun sendMessage(isInitiator: Boolean, roomId: String, message: SignalingMessage)
     fun receiveMessagesFlow(isInitiator: Boolean, roomId: String): Flow<SignalingMessage>
 }

@@ -38,6 +38,8 @@ class WebRTCManager @AssistedInject constructor(
     // Defines if this WebRTCManager was the one that started the process
     private var isInitiator by Delegates.notNull<Boolean>()
 
+    private var signalingRoom: String? = null
+
     // Name for this WebRTCManager in logs.
     // This is useful when we have more than one WebRTCManager in the same screen (see LocalDemo)
     private val logsName: String
@@ -79,9 +81,11 @@ class WebRTCManager @AssistedInject constructor(
                     sessionScope.launch {
                         val offer = it.createOffer()
                         it.setLocalDescription(offer)
+                        val roomId = signalingRoom
+                        requireNotNull(roomId)
                         signalingRepository.sendMessage(
                             isInitiator = isInitiator,
-                            roomId = "room002",
+                            roomId = roomId,
                             message = SignalingMessage.SignalingDescription(offer)
                         )
                     }
@@ -89,9 +93,11 @@ class WebRTCManager @AssistedInject constructor(
                 }
             },
             onIceCandidate = { iceCandidate ->
+                val roomId = signalingRoom
+                requireNotNull(roomId)
                 signalingRepository.sendMessage(
                     isInitiator = isInitiator,
-                    roomId = "room002",
+                    roomId = roomId,
                     message = SignalingMessage.SignalingCandidate(iceCandidate)
                 )
             }
@@ -113,8 +119,9 @@ class WebRTCManager @AssistedInject constructor(
     /**
      * Create DataChannel and start listening the signaling server.
      */
-    fun start(isInitiator: Boolean): AutoCloseable {
+    fun start(isInitiator: Boolean, roomId: String): AutoCloseable {
         this.isInitiator = isInitiator
+        this.signalingRoom = roomId
         Timber.d("$logsName:[start]")
 
         val localDataChannelInit = DataChannel.Init().apply {
@@ -125,7 +132,7 @@ class WebRTCManager @AssistedInject constructor(
 
         dataChannel = peerConnection.createDataChannel("chat", localDataChannelInit)
         sessionScope.launch { collectDataChannelEvents() }
-        sessionScope.launch { collectSignalingServerEvents() }
+        sessionScope.launch { collectSignalingServerEvents(roomId) }
 
         return AutoCloseable { close() }
     }
@@ -169,9 +176,9 @@ class WebRTCManager @AssistedInject constructor(
     /**
      * Collect messages from the [SignalingRepository]
      */
-    private suspend fun collectSignalingServerEvents() {
+    private suspend fun collectSignalingServerEvents(roomId: String) {
         signalingRepository
-            .receiveMessagesFlow(isInitiator, "room002")
+            .receiveMessagesFlow(isInitiator, roomId)
             .collect { message ->
                 when (message) {
                     is SignalingMessage.SignalingCandidate -> {
@@ -199,7 +206,7 @@ class WebRTCManager @AssistedInject constructor(
                                 peerConnection.setLocalDescription(answer)
                                 signalingRepository.sendMessage(
                                     isInitiator = isInitiator,
-                                    roomId = "room002",
+                                    roomId = roomId,
                                     message = SignalingMessage.SignalingDescription(answer)
                                 )
                             }

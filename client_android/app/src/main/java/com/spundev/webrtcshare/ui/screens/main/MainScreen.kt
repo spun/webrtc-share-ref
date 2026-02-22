@@ -13,7 +13,7 @@ import androidx.compose.ui.Modifier
 fun MainRoute(
     onNavigateToLocalDemo: () -> Unit,
     onNavigateToCreate: () -> Unit,
-    onNavigateToJoin: () -> Unit,
+    onNavigateToJoinRequest: () -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.Center,
@@ -26,7 +26,7 @@ fun MainRoute(
         Button(onClick = onNavigateToCreate) {
             Text("Create room")
         }
-        Button(onClick = onNavigateToJoin) {
+        Button(onClick = onNavigateToJoinRequest) {
             Text("Join room")
         }
     }
