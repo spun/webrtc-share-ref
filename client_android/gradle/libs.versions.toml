@@ -14,6 +14,7 @@ kotlin = "2.3.10"
 kotlinxSerialization = "1.10.0"
 ksp = "2.3.6"
 timber = "5.0.1"
+zxing = "3.5.4"
 
 [libraries]
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
@@ -33,6 +34,7 @@ hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref
 hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerialization" }
 timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
+zxing = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
 # TESTS
 androidx-test-ext = { group = "androidx.test.ext", name = "junit-ktx", version.ref = "androidxTestExt" }
 

@@ -91,6 +91,8 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
     // Timber
     implementation(libs.timber)
+    // zxing
+    implementation(libs.zxing)
     // WebRTC
     implementation(libs.getstream.webrtc.android)
 
