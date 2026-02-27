@@ -89,6 +89,8 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.androidx.navigation3.ui)
     implementation(libs.androidx.lifecycle.viewmodel.navigation3)
+    // Play services code scanner
+    implementation(libs.playServices.codeScanner)
     // Timber
     implementation(libs.timber)
     // zxing
