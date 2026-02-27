@@ -4,7 +4,6 @@ import com.google.firebase.Firebase
 import com.google.firebase.database.ChildEvent
 import com.google.firebase.database.childEvents
 import com.google.firebase.database.database
-import com.google.firebase.database.getValue
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.mapNotNull
@@ -103,7 +102,11 @@ class RealTimeSignalingRepository @Inject constructor() : SignalingRepository {
 
         return messagesListRef.childEvents
             .filterIsInstance<ChildEvent.Added>()
-            .mapNotNull { it.snapshot.getValue<RealTimeDatabaseMessage>()?.toSignalingMessage() }
+            .mapNotNull {
+                // Use this getValue instead of getValue<RealTimeDatabaseMessage>() to avoid
+                // "Not a direct subclass of GenericTypeIndicator" issues on release builds
+                it.snapshot.getValue(RealTimeDatabaseMessage::class.java)?.toSignalingMessage()
+            }
             .onEach { message -> Timber.d("RECEIVE: ($roomId) $message") }
     }
 
