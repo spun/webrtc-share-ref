@@ -26,3 +26,5 @@
 # If R8 renames any of these fields, the final message will use an unexpected format and our
 # validation Rules will reject them.
 -keepclassmembernames class com.spundev.webrtcshare.repositories.RealTimeDatabaseMessage { *; }
+# Also keep the required no-argument constructor
+-keepclassmembers class com.spundev.webrtcshare.repositories.RealTimeDatabaseMessage { public <init>(); }
