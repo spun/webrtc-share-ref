@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
@@ -170,7 +171,10 @@ private fun ClientPane(
         // Messages
         LazyColumn(
             verticalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 48.dp),
+            contentPadding = PaddingValues(
+                top = 40.dp + 4.dp, // ConnectionStatusIndicator height + small padding
+                bottom = 64.dp + 4.dp, // EmojiSelector height + small padding
+            ),
             modifier = Modifier.fillMaxWidth()
         ) {
             items(clientData.messages) { message ->
@@ -181,14 +185,20 @@ private fun ClientPane(
         // Connection status
         ConnectionStatusIndicator(
             isConnected = clientData.isConnected,
-            modifier = Modifier.align(Alignment.TopCenter)
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 12.dp)
+                .height(28.dp)
         )
 
         // Emoji selector
         EmojiSelector(
             onEmojiSelected = onSendMessage,
             enabled = clientData.isConnected,
-            modifier = Modifier.align(Alignment.BottomEnd)
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 16.dp, end = 16.dp)
+                .height(48.dp)
         )
     }
 }
@@ -207,7 +217,6 @@ private fun ConnectionStatusIndicator(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = modifier
-            .padding(12.dp)
             .clip(MaterialTheme.shapes.extraLarge)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
             .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -240,7 +249,6 @@ private fun EmojiSelector(
 ) {
     Row(
         modifier = modifier
-            .padding(16.dp)
             .clip(MaterialTheme.shapes.extraLarge)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh)
     ) {
