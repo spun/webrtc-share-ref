@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.joinRoom
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Realtime
+import com.spundev.webrtcshare.model.TextMessage
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.assisted.Assisted
@@ -35,7 +36,7 @@ class JoinRoomViewModel @AssistedInject constructor(
     )
 
     // List of messages sent and received
-    val messages: StateFlow<List<String>> = webRTCManager.messages.stateIn(
+    val messages: StateFlow<List<TextMessage>> = webRTCManager.messages.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList()

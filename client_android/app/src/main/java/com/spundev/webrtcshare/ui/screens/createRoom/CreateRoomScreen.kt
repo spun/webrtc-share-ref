@@ -95,7 +95,7 @@ fun CreateRoomRoute(
         }
 
         messages.forEach {
-            Text(it)
+            Text(it.text)
         }
     }
 }

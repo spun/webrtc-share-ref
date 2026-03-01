@@ -1,7 +1,12 @@
 <resources>
     <string name="app_name">WebRTC Share</string>
+    <string name="toolbar_navigate_up">Navigate up</string>
     <!-- Main screen -->
     <string name="main_create_room">Create room</string>
     <string name="main_join_room">Join room</string>
     <string name="main_launch_local_demo">Launch local demo</string>
+    <!-- Local demo screen -->
+    <string name="local_demo_title">Local demo</string>
+    <string name="local_demo_connected">Connected</string>
+    <string name="local_demo_disconnected">Disconnected</string>
 </resources>

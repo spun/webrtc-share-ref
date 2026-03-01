@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.createRoom
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Realtime
+import com.spundev.webrtcshare.model.TextMessage
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,7 +34,7 @@ class CreateRoomViewModel @Inject constructor(
     )
 
     // List of messages sent and received
-    val messages: StateFlow<List<String>> = webRTCManager.messages.stateIn(
+    val messages: StateFlow<List<TextMessage>> = webRTCManager.messages.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = emptyList()

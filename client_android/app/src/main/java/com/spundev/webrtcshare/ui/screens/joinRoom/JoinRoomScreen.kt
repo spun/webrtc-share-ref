@@ -31,7 +31,7 @@ fun JoinRoomRoute(
             Text("Send Fox")
         }
         messages.forEach {
-            Text(it)
+            Text(it.text)
         }
     }
 }

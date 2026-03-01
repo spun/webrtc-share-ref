@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.localDemo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.spundev.webrtcshare.di.Local
+import com.spundev.webrtcshare.model.TextMessage
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import com.spundev.webrtcshare.utils.WebRTCManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -53,12 +54,12 @@ class LocalDemoViewModel @Inject constructor(
         initialValue = LocalDemoUiState.Loading
     )
 
-    fun sendMessageFromLocal() {
-        localWebRTCManager.sendMessage("From local")
+    fun sendMessageFromLocal(message: String) {
+        localWebRTCManager.sendMessage(message)
     }
 
-    fun sendMessageFromRemote() {
-        remoteWebRTCManager.sendMessage("From remote")
+    fun sendMessageFromRemote(message: String) {
+        remoteWebRTCManager.sendMessage(message)
     }
 }
 
@@ -72,5 +73,5 @@ sealed interface LocalDemoUiState {
 
 data class DemoClientData(
     val isConnected: Boolean,
-    val messages: List<String>
+    val messages: List<TextMessage>
 )

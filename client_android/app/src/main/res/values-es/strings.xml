@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">WebRTC Share</string>
+    <string name="toolbar_navigate_up">Desplazarse hacia arriba</string>
     <string name="main_create_room">Crear sala</string>
     <string name="main_join_room">Unirse a una sala</string>
     <string name="main_launch_local_demo">Abrir demo</string>
+    <string name="local_demo_title">Demo</string>
+    <string name="local_demo_connected">Conectado</string>
+    <string name="local_demo_disconnected">Desconectado</string>
 </resources>
