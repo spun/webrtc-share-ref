@@ -29,7 +29,7 @@ class JoinRoomViewModel @AssistedInject constructor(
     private val webRTCManager = webRTCManagerFactory.create(signalingRepository)
 
     // isConnected value
-    val isConnected: StateFlow<Boolean> = webRTCManager.isConnected.stateIn(
+    val isConnected: StateFlow<Boolean?> = webRTCManager.isConnected.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = false

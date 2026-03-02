@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -53,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.window.core.layout.WindowSizeClass
 import com.spundev.webrtcshare.R
 import com.spundev.webrtcshare.model.TextMessage
+import com.spundev.webrtcshare.ui.components.TextMessagesViewer
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
 import kotlin.math.min
 
@@ -168,19 +167,16 @@ private fun ClientPane(
             .background(MaterialTheme.colorScheme.surfaceContainerLowest)
             .fillMaxWidth()
     ) {
-        // Messages
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+
+        TextMessagesViewer(
+            messages = clientData.messages,
             contentPadding = PaddingValues(
                 top = 40.dp + 4.dp, // ConnectionStatusIndicator height + small padding
                 bottom = 64.dp + 4.dp, // EmojiSelector height + small padding
-            ),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            items(clientData.messages) { message ->
-                TextMessageRow(message)
-            }
-        }
+                start = 16.dp,
+                end = 16.dp,
+            )
+        )
 
         // Connection status
         ConnectionStatusIndicator(
@@ -260,42 +256,6 @@ private fun EmojiSelector(
                 Text(emojiString)
             }
         }
-    }
-}
-
-@Composable
-private fun TextMessageRow(
-    message: TextMessage
-) {
-    val backgroundColor = if (message.isMine) {
-        MaterialTheme.colorScheme.inversePrimary
-    } else {
-        MaterialTheme.colorScheme.surfaceContainer
-    }
-    val color = if (message.isMine) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurface
-    }
-    val horizontalArrangement = if (message.isMine) {
-        Arrangement.End
-    } else {
-        Arrangement.Start
-    }
-    Row(
-        horizontalArrangement = horizontalArrangement,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    ) {
-        Text(
-            text = message.text,
-            color = color,
-            modifier = Modifier
-                .clip(MaterialTheme.shapes.medium)
-                .background(backgroundColor)
-                .padding(horizontal = 16.dp, vertical = 8.dp)
-        )
     }
 }
 

@@ -46,9 +46,9 @@ class WebRTCManager @AssistedInject constructor(
     private val logsName: String
         get() = if (isInitiator) "Main" else "Seco"
 
-    // Connection state
-    private val _isConnected = MutableStateFlow(false)
-    val isConnected: StateFlow<Boolean> = _isConnected
+    // Connection state (null if never connected)
+    private val _isConnected = MutableStateFlow<Boolean?>(null)
+    val isConnected: StateFlow<Boolean?> = _isConnected
 
     // List of messages sent and received
     private val _messages = MutableStateFlow(listOf<TextMessage>())

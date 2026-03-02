@@ -40,11 +40,11 @@ class LocalDemoViewModel @Inject constructor(
     ) { localIsConnected, localMessages, remoteIsConnected, remoteMessages ->
         LocalDemoUiState.Success(
             localClient = DemoClientData(
-                isConnected = localIsConnected,
+                isConnected = localIsConnected == true,
                 messages = localMessages
             ),
             remoteClient = DemoClientData(
-                isConnected = remoteIsConnected,
+                isConnected = remoteIsConnected == true,
                 messages = remoteMessages
             ),
         )

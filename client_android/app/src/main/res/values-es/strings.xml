@@ -5,7 +5,18 @@
     <string name="main_create_room">Crear sala</string>
     <string name="main_join_room">Unirse a una sala</string>
     <string name="main_launch_local_demo">Abrir demo</string>
+    <string name="create_room_connected_send_button">Enviar</string>
+    <string name="create_room_disconnected_title">Desconectado</string>
     <string name="local_demo_title">Demo</string>
     <string name="local_demo_connected">Conectado</string>
     <string name="local_demo_disconnected">Desconectado</string>
+    <string name="create_room_loading_title">Creando sala</string>
+    <string name="create_room_waiting_title">Esperando invitado</string>
+    <string name="create_room_waiting_footer_share_button_content_description">Compartir sala</string>
+    <string name="create_room_connected_title">Conectado</string>
+    <string name="create_room_waiting_header_room_id_label">Tu sala es</string>
+    <string name="create_room_waiting_footer_scan_text">Escanea el código QR</string>
+    <string name="create_room_waiting_footer_share_start_text">o</string>
+    <string name="create_room_waiting_footer_share_end_text">con la otra persona</string>
+    <string name="create_room_waiting_footer_share_button">Compártelo</string>
 </resources>

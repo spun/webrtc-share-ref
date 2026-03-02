@@ -25,7 +25,7 @@ fun JoinRoomRoute(
     ) {
         Text("isConnected: $isConnected")
         Button(
-            enabled = isConnected,
+            enabled = isConnected == true,
             onClick = { viewModel.sendMessage("Fox") }
         ) {
             Text("Send Fox")

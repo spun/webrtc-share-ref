@@ -5,6 +5,18 @@
     <string name="main_create_room">Create room</string>
     <string name="main_join_room">Join room</string>
     <string name="main_launch_local_demo">Launch local demo</string>
+    <!-- Create room screen -->
+    <string name="create_room_loading_title">Creating room</string>
+    <string name="create_room_waiting_title">Waiting for guest</string>
+    <string name="create_room_waiting_header_room_id_label">Your room is</string>
+    <string name="create_room_waiting_footer_scan_text">Scan the QR code with the other device</string>
+    <string name="create_room_waiting_footer_share_start_text">or</string>
+    <string name="create_room_waiting_footer_share_button">Share</string>
+    <string name="create_room_waiting_footer_share_button_content_description">Share room</string>
+    <string name="create_room_waiting_footer_share_end_text">this with them</string>
+    <string name="create_room_connected_title">Connected</string>
+    <string name="create_room_connected_send_button">Send</string>
+    <string name="create_room_disconnected_title">Disconnected</string>
     <!-- Local demo screen -->
     <string name="local_demo_title">Local demo</string>
     <string name="local_demo_connected">Connected</string>
