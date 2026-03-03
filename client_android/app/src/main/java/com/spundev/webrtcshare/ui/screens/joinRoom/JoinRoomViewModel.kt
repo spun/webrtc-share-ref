@@ -12,6 +12,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 
 @HiltViewModel(assistedFactory = JoinRoomViewModel.Factory::class)
@@ -28,25 +29,35 @@ class JoinRoomViewModel @AssistedInject constructor(
 
     private val webRTCManager = webRTCManagerFactory.create(signalingRepository)
 
-    // isConnected value
-    val isConnected: StateFlow<Boolean?> = webRTCManager.isConnected.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = false
-    )
-
-    // List of messages sent and received
-    val messages: StateFlow<List<TextMessage>> = webRTCManager.messages.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5_000),
-        initialValue = emptyList()
-    )
-
     init {
         addCloseable(webRTCManager.start(isInitiator = false, roomId = roomId))
     }
 
+    val uiState: StateFlow<JoinRoomUiState> = combine(
+        webRTCManager.isConnected,
+        webRTCManager.messages
+    ) { isConnected, messages ->
+        if (isConnected != null) {
+            JoinRoomUiState.Conversation(roomId, isConnected, messages)
+        } else {
+            JoinRoomUiState.Loading
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = JoinRoomUiState.Loading
+    )
+
     fun sendMessage(message: String) {
         webRTCManager.sendMessage(message)
     }
+}
+
+sealed interface JoinRoomUiState {
+    data object Loading : JoinRoomUiState
+    data class Conversation(
+        val roomId: String,
+        val isConnected: Boolean,
+        val messages: List<TextMessage>
+    ) : JoinRoomUiState
 }

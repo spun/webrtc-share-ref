@@ -17,6 +17,11 @@
     <string name="create_room_connected_title">Connected</string>
     <string name="create_room_connected_send_button">Send</string>
     <string name="create_room_disconnected_title">Disconnected</string>
+    <!-- Join room screen -->
+    <string name="join_room_loading_title">Connecting</string>
+    <string name="join_room_connected_title">Connected</string>
+    <string name="join_room_disconnected_title">Disconnected</string>
+    <string name="join_room_connected_send_button">Send</string>
     <!-- Local demo screen -->
     <string name="local_demo_title">Local demo</string>
     <string name="local_demo_connected">Connected</string>
