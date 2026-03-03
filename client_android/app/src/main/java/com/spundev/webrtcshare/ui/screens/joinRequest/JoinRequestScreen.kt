@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -162,7 +163,7 @@ private fun CodeScannerButton(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    OutlinedButton(
+    Button(
         onClick = {
             val options = GmsBarcodeScannerOptions.Builder()
                 .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
@@ -280,7 +281,7 @@ private fun RoomIdFormSection(
                 Text(stringResource(R.string.join_request_form_paste_button))
             }
             // Join button
-            Button(
+            FilledTonalButton(
                 onClick = { onRoomId(fieldState.text.toString()) },
                 enabled = fieldState.text.isNotEmpty()
             ) {
