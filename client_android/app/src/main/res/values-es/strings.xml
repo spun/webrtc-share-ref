@@ -23,4 +23,13 @@
     <string name="join_room_connected_title">Conectado</string>
     <string name="join_room_disconnected_title">Desconectado</string>
     <string name="join_room_connected_send_button">Enviar</string>
+    <string name="join_request_title">Unirse a la sala</string>
+    <string name="join_request_scan_section_label">Escanea el código QR</string>
+    <string name="join_request_scan_unavailable_error">Este dispositivo no es compatible con el escáner de códigos QR que utilizamos.\n\nPor favor, utilice el formulario de más abajo para unirse a la sala.</string>
+    <string name="join_request_scan_button_content_description">Escanear el código de la sala</string>
+    <string name="join_request_scan_button">Abrir escáner</string>
+    <string name="join_request_form_section_label">o introduce el código de la sala manualmente</string>
+    <string name="join_request_form_field_label">Código de la sala</string>
+    <string name="join_request_form_paste_button">Pegar</string>
+    <string name="join_request_form_join_button">Unirse a la sala</string>
 </resources>

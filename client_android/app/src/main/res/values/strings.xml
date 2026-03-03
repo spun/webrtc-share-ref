@@ -17,6 +17,16 @@
     <string name="create_room_connected_title">Connected</string>
     <string name="create_room_connected_send_button">Send</string>
     <string name="create_room_disconnected_title">Disconnected</string>
+    <!-- Join request screen -->
+    <string name="join_request_title">Join room</string>
+    <string name="join_request_scan_section_label">Scan the QR code</string>
+    <string name="join_request_scan_unavailable_error">This device is not compatible with the QR code scanner we use.\n\nPlease use the form below to join the room</string>
+    <string name="join_request_scan_button_content_description">Scan room code</string>
+    <string name="join_request_scan_button">Launch scanner</string>
+    <string name="join_request_form_section_label">or enter the room code manually</string>
+    <string name="join_request_form_field_label">Room code</string>
+    <string name="join_request_form_paste_button">Paste</string>
+    <string name="join_request_form_join_button">Join room</string>
     <!-- Join room screen -->
     <string name="join_room_loading_title">Connecting</string>
     <string name="join_room_connected_title">Connected</string>

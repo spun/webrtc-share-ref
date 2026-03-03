@@ -93,6 +93,7 @@ private fun NavProvider() {
                 JoinRequestRoute(
                     onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     onNavigateToRoom = { roomId ->
+                        backStack.removeLastOrNull()
                         backStack.add(JoinRoomRoute(roomId))
                     }
                 )
