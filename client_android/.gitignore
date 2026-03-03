@@ -15,3 +15,7 @@
 .cxx
 local.properties
 /app/google-services.json
+# More idea project files
+/.idea/deploymentTargetSelector.xml
+/.idea/inspectionProfiles/Project_Default.xml
+/.idea/deviceManager.xml

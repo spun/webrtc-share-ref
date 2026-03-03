@@ -6,6 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.togetherWith
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
@@ -52,7 +53,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             WebRTCShareTheme {
-                Surface {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainer
+                ) {
                     NavProvider()
                 }
             }
@@ -90,6 +93,7 @@ private fun NavProvider() {
                 JoinRequestRoute(
                     onNavigateBack = dropUnlessResumed { backStack.removeLastOrNull() },
                     onNavigateToRoom = { roomId ->
+                        backStack.removeLastOrNull()
                         backStack.add(JoinRoomRoute(roomId))
                     }
                 )

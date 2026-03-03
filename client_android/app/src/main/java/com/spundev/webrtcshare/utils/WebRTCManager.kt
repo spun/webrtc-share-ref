@@ -2,6 +2,7 @@ package com.spundev.webrtcshare.utils
 
 import com.spundev.webrtcshare.extensions.DataChannelEvent
 import com.spundev.webrtcshare.extensions.observerFlow
+import com.spundev.webrtcshare.model.TextMessage
 import com.spundev.webrtcshare.repositories.SignalingMessage
 import com.spundev.webrtcshare.repositories.SignalingRepository
 import dagger.assisted.Assisted
@@ -45,13 +46,13 @@ class WebRTCManager @AssistedInject constructor(
     private val logsName: String
         get() = if (isInitiator) "Main" else "Seco"
 
-    // Connection state
-    private val _isConnected = MutableStateFlow(false)
-    val isConnected: StateFlow<Boolean> = _isConnected
+    // Connection state (null if never connected)
+    private val _isConnected = MutableStateFlow<Boolean?>(null)
+    val isConnected: StateFlow<Boolean?> = _isConnected
 
     // List of messages sent and received
-    private val _messages = MutableStateFlow(listOf<String>())
-    val messages: StateFlow<List<String>> = _messages
+    private val _messages = MutableStateFlow(listOf<TextMessage>())
+    val messages: StateFlow<List<TextMessage>> = _messages
 
     // The DataChannel used to send and receive messages
     private lateinit var dataChannel: DataChannel
@@ -166,7 +167,7 @@ class WebRTCManager @AssistedInject constructor(
                         buffer.data.get(destinationByteArray)
                         val message = String(destinationByteArray)
                         Timber.d("$logsName:[onMessage] message: $message")
-                        _messages.update { it + message }
+                        _messages.update { it + TextMessage(isMine = false, text = message) }
                     }
                 }
             }
@@ -221,7 +222,7 @@ class WebRTCManager @AssistedInject constructor(
         val buffer = ByteBuffer.wrap(message.toByteArray())
         dataChannel.send(DataChannel.Buffer(buffer, false))
         // Also update our messages list with the new message
-        _messages.update { it + message }
+        _messages.update { it + TextMessage(isMine = true, text = message) }
     }
 
     fun close() {
