@@ -24,7 +24,7 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.spundev.webrtcshare.testUtils.CustomTestRunner"
     }
 
     buildTypes {
@@ -104,6 +104,10 @@ dependencies {
     androidTestImplementation(libs.androidx.test.ext)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.playServices.baseTesting)
+    androidTestImplementation(libs.hilt.android.testing)
+    // kspAndroidTest (libs.hilt.compiler)
     // For local unit tests
     testImplementation(libs.androidx.test.ext)
 }
