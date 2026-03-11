@@ -4,23 +4,29 @@ import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.android.gms.common.moduleinstall.ModuleInstallClient
+import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_CANCELED
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_COMPLETED
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_DOWNLOADING
+import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_FAILED
 import com.google.android.gms.common.testing.FakeModuleInstallClient
 import com.google.android.gms.common.testing.FakeModuleInstallUtil
 import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.spundev.webrtcshare.di.MLKitModule
-import com.spundev.webrtcshare.extensions.ModuleInstallState
+import com.spundev.webrtcshare.extensions.ModuleInstallException
 import dagger.hilt.android.testing.BindValue
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.UninstallModules
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -99,22 +105,13 @@ class MLKitManagerTest {
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.AlreadyAvailable, barcodeScannerAvailability)
 
-        val receivedStates = mutableListOf<ModuleInstallState>()
-        val job = launch {
-            mlKitManager.installFlow(optionalModuleApi)
-                .collect {
-                    receivedStates.add(it)
-                }
+        val receivedStates = try {
+            mlKitManager.installFlow(optionalModuleApi).toList()
+        } catch (_: Exception) {
+            Assert.fail("This install should not throw exceptions")
         }
-        job.join()
 
-        assertEquals(
-            listOf(
-                ModuleInstallState.Requested,
-                ModuleInstallState.AlreadyInstalled
-            ),
-            receivedStates
-        )
+        assertEquals(emptyList<Int>(), receivedStates)
     }
 
     @Test
@@ -130,12 +127,15 @@ class MLKitManagerTest {
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
-        val receivedStates = mutableListOf<ModuleInstallState>()
+        val receivedStates = mutableListOf<Int>()
         val job = launch {
-            mlKitManager.installFlow(optionalModuleApi)
-                .collect {
-                    receivedStates.add(it)
-                }
+            try {
+                mlKitManager.installFlow(optionalModuleApi)
+                    .onEach { receivedStates.add(it) }
+                    .collect()
+            } catch (_: Exception) {
+                Assert.fail("This install should not throw exceptions")
+            }
         }
 
         // Without this, all our sendInstallUpdates below would be executed before
@@ -167,40 +167,150 @@ class MLKitManagerTest {
 
         job.join()
 
-        assertEquals(
+        assertEquals(listOf(10, 20), receivedStates)
+    }
+
+    @Test
+    fun urgentInstallWithListenerWithFailedUpdate() = runTest {
+        // Reset any previously installed modules.
+        fakeModuleInstallClient.reset()
+
+        // Generate a ModuleInstallResponse and set it as the result for installModules().
+        val moduleInstallResponse = FakeModuleInstallUtil.generateModuleInstallResponse()
+        fakeModuleInstallClient.setInstallModulesTask(Tasks.forResult(moduleInstallResponse))
+
+        val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
+        assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
+
+        val optionalModuleApi = GmsBarcodeScanning.getClient(context)
+        val receivedStates = mutableListOf<Int>()
+        val job = launch {
+            try {
+                mlKitManager.installFlow(optionalModuleApi)
+                    .onEach { receivedStates.add(it) }
+                    .collect()
+            } catch (e: ModuleInstallException) {
+                assertTrue(e is ModuleInstallException.InstallFailed)
+            } catch (_: Exception) {
+                Assert.fail("This install should not throw non ModuleInstallException")
+            }
+        }
+
+        // Without this, all our sendInstallUpdates below would be executed before
+        // our launch block and flow collect.
+        // This would skip the COMPLETE update that makes the flow collect end and
+        // the test would get stuck.
+        advanceUntilIdle()
+
+        fakeModuleInstallClient.sendInstallUpdates(
             listOf(
-                ModuleInstallState.Requested,
-                ModuleInstallState.Installing(10),
-                ModuleInstallState.Installing(20),
-                ModuleInstallState.Complete
-            ),
-            receivedStates
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_DOWNLOADING,
+                    10,
+                    100
+                ),
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_FAILED
+                ),
+                // Following updates after STATE_FAILED should be ignored
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_DOWNLOADING,
+                    20,
+                    100
+                ),
+            )
         )
+
+        job.join()
+
+        assertEquals(listOf(10), receivedStates)
+    }
+
+    @Test
+    fun urgentInstallWithListenerWithCancellationState() = runTest {
+        // Reset any previously installed modules.
+        fakeModuleInstallClient.reset()
+
+        // Generate a ModuleInstallResponse and set it as the result for installModules().
+        val moduleInstallResponse = FakeModuleInstallUtil.generateModuleInstallResponse()
+        fakeModuleInstallClient.setInstallModulesTask(Tasks.forResult(moduleInstallResponse))
+
+        val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
+        assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
+
+        val optionalModuleApi = GmsBarcodeScanning.getClient(context)
+        val receivedStates = mutableListOf<Int>()
+        val job = launch {
+            try {
+                mlKitManager.installFlow(optionalModuleApi)
+                    .onEach { receivedStates.add(it) }
+                    .collect()
+            } catch (e: Exception) {
+                if (e !is CancellationException) {
+                    Assert.fail("This install should not throw non CancellationException")
+                }
+            }
+        }
+
+        // Without this, all our sendInstallUpdates below would be executed before
+        // our launch block and flow collect.
+        // This would skip the COMPLETE update that makes the flow collect end and
+        // the test would get stuck.
+        advanceUntilIdle()
+
+        // This is trying to simulate an installation process that gets interrupted
+        // by a cancellation state from the ModuleInstallClient.
+        // NOTE: We would also like to check what happens when we cancel the
+        // installation job. Unfortunately, fakeModuleInstallClient doesn't react to
+        // releaseModules (the only way we have to "cancel" an installation) so we
+        // can't really check if the installation process stops when we cancel a job.
+        fakeModuleInstallClient.sendInstallUpdates(
+            listOf(
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_DOWNLOADING,
+                    10,
+                    100
+                ),
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_CANCELED
+
+                ),
+                // Following updates after STATE_FAILED should be ignored
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_DOWNLOADING,
+                    20,
+                    100
+                ),
+            )
+        )
+        job.join()
+
+        assertEquals(listOf(10), receivedStates)
     }
 
     @Test
     fun urgentInstallFailure() = runTest {
         fakeModuleInstallClient.setInstallModulesTask(Tasks.forException(RuntimeException()))
 
-        // Verify the case where an RuntimeException happened when trying to send the urgent install request...
+        // Verify the case where an RuntimeException happened when trying to send the urgent installation request...
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
 
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 
-        val receivedStates = mutableListOf<ModuleInstallState>()
-        val job = launch {
-            mlKitManager.installFlow(optionalModuleApi)
-                .catch { println("Install failed") }
-                .collect {
-                    receivedStates.add(it)
-                }
+        try {
+            mlKitManager.installFlow(optionalModuleApi).toList()
+            Assert.fail("Should fail with a RequestFailed exception")
+        } catch (e: ModuleInstallException) {
+            assertTrue(e is ModuleInstallException.RequestFailed)
+        } catch (_: Exception) {
+            Assert.fail("This install should not throw non ModuleInstallException")
         }
-        job.join()
-
-        assertEquals(
-            listOf<ModuleInstallState>(),
-            receivedStates
-        )
     }
 }

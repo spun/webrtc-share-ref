@@ -7,23 +7,22 @@ import com.google.android.gms.common.moduleinstall.ModuleInstallRequest
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_CANCELED
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_COMPLETED
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_FAILED
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.tasks.await
+import timber.log.Timber
 
-sealed interface ModuleInstallState {
-    data object Requested : ModuleInstallState
-    data object RequestError : ModuleInstallState
-    data object AlreadyInstalled : ModuleInstallState
-    data class Installing(val progress: Int) : ModuleInstallState
-    data object Complete : ModuleInstallState
-    data class Failed(val state: Int) : ModuleInstallState
+sealed class ModuleInstallException : Exception() {
+    class RequestFailed : ModuleInstallException()
+    class InstallFailed : ModuleInstallException()
 }
 
 fun ModuleInstallClient.installFlow(
     api: OptionalModuleApi
-) = callbackFlow {
+): Flow<Int> = callbackFlow {
 
     val listener: InstallStatusListener = { update ->
         // Progress info is only set when modules are in the progress of downloading.
@@ -32,18 +31,21 @@ fun ModuleInstallClient.installFlow(
                 (it.bytesDownloaded * 100 / it.totalBytesToDownload).toInt()
             } else 0
             // Notify progress for the progress bar.
-            trySendBlocking(ModuleInstallState.Installing(progress))
+            trySendBlocking(progress)
         }
 
         when (update.installState) {
-            STATE_COMPLETED -> {
-                trySendBlocking(ModuleInstallState.Complete)
-                channel.close()
+            STATE_FAILED -> {
+                channel.close(ModuleInstallException.InstallFailed())
             }
 
-            STATE_CANCELED, STATE_FAILED -> {
-                trySendBlocking(ModuleInstallState.Failed(update.installState))
-                channel.close()
+            STATE_CANCELED -> {
+                cancel()
+            }
+
+            STATE_COMPLETED -> channel.close()
+            else -> {
+                Timber.w("Unhandled install state: ${update.installState}")
             }
         }
     }
@@ -53,18 +55,26 @@ fun ModuleInstallClient.installFlow(
         .setListener(listener)
         .build()
 
-    trySendBlocking(ModuleInstallState.Requested)
-    val installResponse = installModules(request).await()
-    if (installResponse != null) {
-        if (installResponse.areModulesAlreadyInstalled()) {
-            trySendBlocking(ModuleInstallState.AlreadyInstalled)
-            channel.close()
+    try {
+        val installResponse = installModules(request).await()
+        if (installResponse != null) {
+            if (installResponse.areModulesAlreadyInstalled()) {
+                channel.close()
+            }
+        } else {
+            channel.close(ModuleInstallException.RequestFailed())
         }
-    } else {
-        trySendBlocking(ModuleInstallState.RequestError)
+    } catch (_: Exception) {
+        channel.close(ModuleInstallException.RequestFailed())
     }
 
     awaitClose {
         unregisterListener(listener)
+        // Initiates a request to release the optional module if no longer needed by any apps.
+        // This does not guarantee that the module will be removed. However, since we were
+        // installing it up to this point, we can assume no other app needs it and Google Play
+        // services attempt to remove it.
+        // This is the closest thing we have to a cancel.
+        releaseModules(api)
     }
 }
