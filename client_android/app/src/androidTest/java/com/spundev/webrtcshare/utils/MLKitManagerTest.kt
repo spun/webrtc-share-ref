@@ -283,7 +283,8 @@ class MLKitManagerTest {
         // NOTE: We would also like to check what happens when we cancel the
         // installation job. Unfortunately, fakeModuleInstallClient doesn't react to
         // releaseModules (the only way we have to "cancel" an installation) so we
-        // can't really check if the installation process stops when we cancel a job.
+        // can't really check if the installation process stops when we cancel a job
+        // or if the module gets removed.
         fakeModuleInstallClient.sendInstallUpdates(
             listOf(
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(

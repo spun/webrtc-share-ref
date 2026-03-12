@@ -12,6 +12,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
 
@@ -70,11 +71,31 @@ fun ModuleInstallClient.installFlow(
 
     awaitClose {
         unregisterListener(listener)
-        // Initiates a request to release the optional module if no longer needed by any apps.
+    }
+}.onCompletion {
+    // We believe that, if a client cancels the collection, the installer from play
+    // services will not be aware, and it will keep installing the module (the call
+    // to installModules(...).await will not suspend for the whole installation
+    // process).
+    //
+    // Fortunately, the client from play services has a method to stop ongoing
+    // installations so we just need to detect if the installation should be stopped
+    // and call it manually.
+    //
+    // We haven't found a way to detect if the callbackFlow stopped because a
+    // cancellation or if it ended successfully from within the callbackFlow body.
+    // We could add a variable flag and set it manually before we call cancel()/close(),
+    // but we can also rely on extensions like/ onCompletion or catch to check why
+    // the flow stopped.
+    if (it != null) {
+        // This call to releaseModules initiates a request to release the optional module
+        // if no longer needed by any apps.
         // This does not guarantee that the module will be removed. However, since we were
         // installing it up to this point, we can assume no other app needs it and Google Play
-        // services attempt to remove it.
-        // This is the closest thing we have to a cancel.
+        // services will attempt to remove it.
+        // If this method is called when an installation request is pending, it will do the
+        // best-effort to cancel that install request.
+        // This is the closest thing we have to a "cancel install".
         releaseModules(api)
     }
 }
