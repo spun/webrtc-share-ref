@@ -7,6 +7,7 @@ import com.spundev.webrtcshare.utils.AvailabilityStatus
 import com.spundev.webrtcshare.utils.MLKitManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -102,12 +104,47 @@ class JoinRequestViewModel @Inject constructor(
                 .onStart { emit(0) }
                 .onEach { progress.value = it }
                 .collect()
-            _screenEvents.value = JoinRequestEvents.LaunchScanner
             scannerState.value = ScannerState.Ready
+            // Wait until scanner is ready before launching
+            // On one occasion, the call to startScan after installation failed
+            // and the Toast said that the scanner was not ready.
+            // For some reason, the module installation seems to return a
+            // STATE_COMPLETED before it is really ready to be used.
+            // We are just going to check availability a number of times before
+            // calling startScan
+            if (waitUntilFeatureAvailable()) {
+                _screenEvents.value = JoinRequestEvents.LaunchScanner
+            }
         } catch (e: ModuleInstallException) {
             Timber.w(e, "install error")
             scannerState.value = ScannerState.Error
         }
+    }
+
+    /**
+     * Repeatedly checks if the scanner module is available.
+     * We use this to get notified when the scanner switches from "installing" to "ready".
+     * @return true if the scanner became available, false if we reached the time/tries
+     * limit and stopped checking.
+     */
+    private suspend fun waitUntilFeatureAvailable(
+        maxAttempts: Int = 8,
+        intervalMs: Long = 500L,
+        timeoutMs: Long = 5_000L
+    ): Boolean {
+        Timber.d("Waiting for scanner to be ready")
+        return withTimeoutOrNull(timeoutMs) {
+            repeat(maxAttempts) { n ->
+                val availability = mlKitManager.getBarcodeScannerAvailability()
+                if (availability == AvailabilityStatus.AlreadyAvailable) {
+                    Timber.d("- check $n: Ready")
+                    return@withTimeoutOrNull true
+                }
+                Timber.d("- check $n: Not ready, waiting ${intervalMs}ms")
+                delay(intervalMs)
+            }
+            false
+        } ?: false
     }
 
     fun clearScanEvent() {
