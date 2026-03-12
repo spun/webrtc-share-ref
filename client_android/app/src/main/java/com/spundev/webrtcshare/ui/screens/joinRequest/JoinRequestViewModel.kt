@@ -95,16 +95,18 @@ class JoinRequestViewModel @Inject constructor(
     }
 
     private suspend fun installScannerModuleAndLaunch() {
-        scannerState.value = try {
+        try {
+            val progress = MutableStateFlow(0)
+            scannerState.value = ScannerState.Installing(progress)
             mlKitManager.installScannerFlow()
                 .onStart { emit(0) }
-                .onEach { scannerState.value = ScannerState.Installing(it) }
+                .onEach { progress.value = it }
                 .collect()
             _screenEvents.value = JoinRequestEvents.LaunchScanner
-            ScannerState.Ready
+            scannerState.value = ScannerState.Ready
         } catch (e: ModuleInstallException) {
             Timber.w(e, "install error")
-            ScannerState.Error
+            scannerState.value = ScannerState.Error
         }
     }
 
@@ -122,7 +124,7 @@ sealed interface JoinRequestUiState {
 
 sealed interface ScannerState {
     data object Ready : ScannerState
-    data class Installing(val progress: Int) : ScannerState
+    data class Installing(val progress: StateFlow<Int>) : ScannerState
     data object Unavailable : ScannerState
     data object Error : ScannerState
 }

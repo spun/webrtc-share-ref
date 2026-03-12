@@ -1,6 +1,7 @@
 package com.spundev.webrtcshare.ui.screens.joinRequest
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -68,6 +69,7 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.spundev.webrtcshare.R
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -232,53 +234,56 @@ private fun CodeScannerButton(
 private fun CodeScannerInfoMessage(
     scannerState: ScannerState
 ) {
-    when (scannerState) {
-        // Display installation progress
-        is ScannerState.Installing -> {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.secondaryContainer)
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.join_request_scan_installing_message),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSecondaryContainer,
-                )
-                Timber.d("${scannerState.progress}")
-                Timber.d("${scannerState.progress / 100f}")
-                LinearProgressIndicator(progress = { scannerState.progress / 100f })
+    // This is the easiest animation we can add
+    // to smooth out the switch between states
+    AnimatedContent(targetState = scannerState) { scannerState ->
+        when (scannerState) {
+            // Display installation progress
+            is ScannerState.Installing -> {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.join_request_scan_installing_message),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    val progress by scannerState.progress.collectAsStateWithLifecycle()
+                    LinearProgressIndicator(progress = { progress / 100f })
+                }
             }
-        }
 
-        // The scanner is not available for this device. Notify user.
-        ScannerState.Unavailable -> {
-            Text(
-                text = stringResource(R.string.join_request_scan_unavailable_message),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(8.dp)
-            )
-        }
+            // The scanner is not available for this device. Notify user.
+            ScannerState.Unavailable -> {
+                Text(
+                    text = stringResource(R.string.join_request_scan_unavailable_message),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                )
+            }
 
-        ScannerState.Error -> {
-            Text(
-                text = stringResource(R.string.join_request_scan_error_message),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(8.dp)
-            )
-        }
+            ScannerState.Error -> {
+                Text(
+                    text = stringResource(R.string.join_request_scan_error_message),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                )
+            }
 
-        ScannerState.Ready -> {}
+            ScannerState.Ready -> {}
+        }
     }
 }
 
@@ -426,7 +431,7 @@ fun CodeScannerSectionInstallingPreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             CodeScannerSection(
-                scannerState = ScannerState.Installing(40),
+                scannerState = ScannerState.Installing(MutableStateFlow(30)),
                 onScanRequest = {},
             )
         }
