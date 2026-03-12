@@ -376,7 +376,25 @@ private fun JoinRequestTopAppBar(
 @Preview
 @Preview(device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
-fun JoinRequestScreenPreview() {
+fun JoinRequestScreenScannerReadyPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            JoinRequestScreen(
+                uiState = JoinRequestUiState.Success(
+                    scannerState = ScannerState.Ready
+                ),
+                onNavigateBack = {},
+                onScanRequest = {},
+                onRoomId = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Preview(device = "spec:parent=pixel_5,orientation=landscape")
+@Composable
+fun JoinRequestScreenLoadingPreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             JoinRequestScreen(
@@ -391,11 +409,24 @@ fun JoinRequestScreenPreview() {
 
 @Preview
 @Composable
-fun CodeScannerSectionAvailablePreview() {
+fun CodeScannerSectionReadyPreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             CodeScannerSection(
                 scannerState = ScannerState.Ready,
+                onScanRequest = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CodeScannerSectionInstallingPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            CodeScannerSection(
+                scannerState = ScannerState.Installing(40),
                 onScanRequest = {},
             )
         }
@@ -409,6 +440,19 @@ fun CodeScannerSectionUnavailablePreview() {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             CodeScannerSection(
                 scannerState = ScannerState.Unavailable,
+                onScanRequest = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CodeScannerSectionErrorPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            CodeScannerSection(
+                scannerState = ScannerState.Error,
                 onScanRequest = {},
             )
         }
