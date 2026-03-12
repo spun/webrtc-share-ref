@@ -3,6 +3,9 @@ package com.spundev.webrtcshare.utils
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.google.android.gms.common.ConnectionResult
+import com.google.android.gms.common.api.ApiException
+import com.google.android.gms.common.api.Status
 import com.google.android.gms.common.moduleinstall.ModuleInstallClient
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_CANCELED
 import com.google.android.gms.common.moduleinstall.ModuleInstallStatusUpdate.InstallState.STATE_COMPLETED
@@ -86,12 +89,26 @@ class MLKitManagerTest {
         // Reset any previously installed modules.
         fakeModuleInstallClient.reset()
 
+        // Create the expected exception that play services will throw when the api is missing
+        val connectionResult = ConnectionResult(ConnectionResult.API_UNAVAILABLE)
+        val status = Status(connectionResult, "Test API_UNAVAILABLE")
+        val exception = ApiException(status)
+        fakeModuleInstallClient.setModulesAvailabilityTask(Tasks.forException(exception))
+
+        val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
+        assertTrue(barcodeScannerAvailability is AvailabilityStatus.Unavailable)
+    }
+
+    @Test
+    fun checkAvailabilityWhenWithUnknownError() = runTest {
+        // Reset any previously installed modules.
+        fakeModuleInstallClient.reset()
+
         // Runtime exception when trying to get module's availability
         fakeModuleInstallClient.setModulesAvailabilityTask(Tasks.forException(RuntimeException()))
 
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
-        val isUnavailable = barcodeScannerAvailability is AvailabilityStatus.Unavailable
-        assertTrue(isUnavailable)
+        assertTrue(barcodeScannerAvailability is AvailabilityStatus.Error)
     }
 
     @Test

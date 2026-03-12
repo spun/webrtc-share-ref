@@ -22,6 +22,11 @@ object MLKitModule {
     fun provideModuleInstallClient(
         @ApplicationContext context: Context
     ): ModuleInstallClient = ModuleInstall.getClient(context)
+}
+
+@Module
+@InstallIn(SingletonComponent::class)
+object GoogleApiAvailabilityModule {
 
     @Singleton
     @Provides
