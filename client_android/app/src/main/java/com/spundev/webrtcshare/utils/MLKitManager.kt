@@ -21,23 +21,59 @@ import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.tasks.await
 import javax.inject.Inject
 
+/**
+ * Different representations of an mlKit module status
+ */
 sealed interface AvailabilityStatus {
+    /**
+     * The module was installed previously, and it's ready to be used.
+     */
     data object AlreadyAvailable : AvailabilityStatus
+
+    /**
+     * The module can be used on this device, but it needs to be installed first.
+     */
     data object ReadyToDownload : AvailabilityStatus
+
+    /**
+     * The module cannot be used on this device.
+     */
     data object Unavailable : AvailabilityStatus
+
+    /**
+     * There was an error while checking the module availability status.
+     */
     data class Error(val reason: String) : AvailabilityStatus
 }
 
 interface MLKitManager {
+    /**
+     * Get the [AvailabilityStatus] for the barcode scanner module.
+     */
     suspend fun getBarcodeScannerAvailability(): AvailabilityStatus
+
+    /**
+     * Starts the barcode scanner module urgent installation and emits the progress.
+     */
     fun installScannerFlow(): Flow<Int>
 
+    /**
+     * Get the [AvailabilityStatus] for the specified module/api.
+     */
     suspend fun getModuleAvailabilityStatus(api: OptionalModuleApi): AvailabilityStatus
+
+    /**
+     * Starts the specified module/api urgent installation and emits the progress.
+     */
     fun installFlow(api: OptionalModuleApi): Flow<Int>
 }
 
+/**
+ * [MLKitManager] that uses [ModuleInstallClient] to check availability and
+ *  module installation against the real play services api.
+ */
 class MLKitManagerImpl @Inject constructor(
-    @ApplicationContext val context: Context,
+    @param:ApplicationContext val context: Context,
     private val moduleInstallClient: ModuleInstallClient,
     private val gApiAvailability: Lazy<GoogleApiAvailability>
 ) : MLKitManager {
@@ -86,8 +122,8 @@ class MLKitManagerImpl @Inject constructor(
 }
 
 /**
- * FAKE Implementation
- * We have these implementation to check how the different flows feel when we use the app.
+ * FAKE [MLKitManager] implementation
+ * We have this implementation to check how different flows feel when we use the app.
  * We already have a MLKitManager test file and compose previews for each state but, since
  * we cannot uninstall mlkit modules from a device, this is a simple way to check each
  * situation while using the app.

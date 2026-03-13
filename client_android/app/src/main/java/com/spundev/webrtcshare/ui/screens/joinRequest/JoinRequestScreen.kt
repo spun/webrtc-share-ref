@@ -80,7 +80,6 @@ fun JoinRequestRoute(
     onNavigateToRoom: (String) -> Unit,
     viewModel: JoinRequestViewModel = hiltViewModel()
 ) {
-    val screenEvents by viewModel.screenEvents.collectAsStateWithLifecycle()
     val uiState: JoinRequestUiState by viewModel.uiState.collectAsStateWithLifecycle()
     JoinRequestScreen(
         uiState = uiState,
@@ -90,7 +89,11 @@ fun JoinRequestRoute(
         // onInstallScannerRequest = viewModel::installScannerModule
     )
 
-    // always refer to the latest onTimeout function
+    // --- events from viewModel ---
+
+    val screenEvents by viewModel.screenEvents.collectAsStateWithLifecycle()
+
+    // always refer to the latest onNavigateToRoom function
     val currentOnNavigateToRoom by rememberUpdatedState(onNavigateToRoom)
 
     val context = LocalContext.current
@@ -116,7 +119,6 @@ fun JoinRequestRoute(
                     // just show the message in a toast.
                     Toast.makeText(context, e.localizedMessage, Toast.LENGTH_LONG).show()
                 } finally {
-                    Timber.d("clear event")
                     viewModel.clearScanEvent()
                 }
             }
@@ -232,11 +234,15 @@ private fun CodeScannerButton(
 
 @Composable
 private fun CodeScannerInfoMessage(
-    scannerState: ScannerState
+    scannerState: ScannerState,
+    modifier: Modifier = Modifier
 ) {
     // This is the easiest animation we can add
     // to smooth out the switch between states
-    AnimatedContent(targetState = scannerState) { scannerState ->
+    AnimatedContent(
+        targetState = scannerState,
+        modifier = modifier
+    ) { scannerState ->
         when (scannerState) {
             // Display installation progress
             is ScannerState.Installing -> {

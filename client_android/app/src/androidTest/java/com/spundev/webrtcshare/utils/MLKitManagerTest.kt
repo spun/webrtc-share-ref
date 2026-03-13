@@ -116,12 +116,15 @@ class MLKitManagerTest {
         // Reset any previously installed modules.
         fakeModuleInstallClient.reset()
 
+        // Set the barcode scanning module as installed
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
         fakeModuleInstallClient.setInstalledModules(optionalModuleApi)
 
+        // Check availability using our mlKitManager
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.AlreadyAvailable, barcodeScannerAvailability)
 
+        // Receive all progress installation updates
         val receivedStates = try {
             mlKitManager.installFlow(optionalModuleApi).toList()
         } catch (_: Exception) {
@@ -137,13 +140,17 @@ class MLKitManagerTest {
         fakeModuleInstallClient.reset()
 
         // Generate a ModuleInstallResponse and set it as the result for installModules().
+        // We will use this to send fake installation progress updates.
         val moduleInstallResponse = FakeModuleInstallUtil.generateModuleInstallResponse()
         fakeModuleInstallClient.setInstallModulesTask(Tasks.forResult(moduleInstallResponse))
 
+        // Check availability using our mlKitManager.
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
+
+        // Store all progress installation updates
         val receivedStates = mutableListOf<Int>()
         val job = launch {
             try {
@@ -161,6 +168,7 @@ class MLKitManagerTest {
         // the test would get stuck.
         advanceUntilIdle()
 
+        // Send installation progress updates using our fakeModuleInstallClient
         fakeModuleInstallClient.sendInstallUpdates(
             listOf(
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(
@@ -178,7 +186,15 @@ class MLKitManagerTest {
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(
                     moduleInstallResponse.sessionId,
                     STATE_COMPLETED
-                )
+                ),
+                // Following updates after STATE_COMPLETED should be ignored, since
+                // the collection stops when completed/failed.
+                FakeModuleInstallUtil.createModuleInstallStatusUpdate(
+                    moduleInstallResponse.sessionId,
+                    STATE_DOWNLOADING,
+                    20,
+                    100
+                ),
             )
         )
 
@@ -193,13 +209,17 @@ class MLKitManagerTest {
         fakeModuleInstallClient.reset()
 
         // Generate a ModuleInstallResponse and set it as the result for installModules().
+        // We will use this to send fake installation progress updates and a FAILED state.
         val moduleInstallResponse = FakeModuleInstallUtil.generateModuleInstallResponse()
         fakeModuleInstallClient.setInstallModulesTask(Tasks.forResult(moduleInstallResponse))
 
+        // Check availability using our mlKitManager.
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
+
+        // Store all progress installation updates
         val receivedStates = mutableListOf<Int>()
         val job = launch {
             try {
@@ -231,7 +251,8 @@ class MLKitManagerTest {
                     moduleInstallResponse.sessionId,
                     STATE_FAILED
                 ),
-                // Following updates after STATE_FAILED should be ignored
+                // Following updates after STATE_FAILED should be ignored, since
+                // the collection stops when completed/failed.
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(
                     moduleInstallResponse.sessionId,
                     STATE_DOWNLOADING,
@@ -252,13 +273,17 @@ class MLKitManagerTest {
         fakeModuleInstallClient.reset()
 
         // Generate a ModuleInstallResponse and set it as the result for installModules().
+        // We will use this to send fake installation progress updates and a CANCELED state.
         val moduleInstallResponse = FakeModuleInstallUtil.generateModuleInstallResponse()
         fakeModuleInstallClient.setInstallModulesTask(Tasks.forResult(moduleInstallResponse))
 
+        // Check availability using our mlKitManager.
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
+
+        // Store all progress installation updates
         val receivedStates = mutableListOf<Int>()
         val job = launch {
             try {
@@ -280,11 +305,11 @@ class MLKitManagerTest {
 
         // This is trying to simulate an installation process that gets interrupted
         // by a cancellation state from the ModuleInstallClient.
-        // NOTE: We would also like to check what happens when we cancel the
-        // installation job. Unfortunately, fakeModuleInstallClient doesn't react to
-        // releaseModules (the only way we have to "cancel" an installation) so we
-        // can't really check if the installation process stops when we cancel a job
-        // or if the module gets removed.
+        // NOTE: We could also check what happens when we cancel the installation job.
+        // Unfortunately, fakeModuleInstallClient doesn't react to releaseModules
+        // (the only way we have to "cancel" an installation) so we can't really check
+        // if the installation process stops when we cancel a job or if the module gets
+        // removed.
         fakeModuleInstallClient.sendInstallUpdates(
             listOf(
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(
@@ -298,7 +323,8 @@ class MLKitManagerTest {
                     STATE_CANCELED
 
                 ),
-                // Following updates after STATE_FAILED should be ignored
+                // Following updates after STATE_CANCELED should be ignored, since
+                // the collection stops when completed/failed.
                 FakeModuleInstallUtil.createModuleInstallStatusUpdate(
                     moduleInstallResponse.sessionId,
                     STATE_DOWNLOADING,
@@ -314,11 +340,12 @@ class MLKitManagerTest {
 
     @Test
     fun urgentInstallFailure() = runTest {
+        // Verify the case where an RuntimeException happened when trying to send the urgent installation request...
         fakeModuleInstallClient.setInstallModulesTask(Tasks.forException(RuntimeException()))
 
-        // Verify the case where an RuntimeException happened when trying to send the urgent installation request...
         val optionalModuleApi = GmsBarcodeScanning.getClient(context)
 
+        // Check availability using our mlKitManager.
         val barcodeScannerAvailability = mlKitManager.getBarcodeScannerAvailability()
         assertEquals(AvailabilityStatus.ReadyToDownload, barcodeScannerAvailability)
 

@@ -37,6 +37,7 @@ class JoinRequestViewModel @Inject constructor(
     val screenEvents = _screenEvents.asStateFlow()
 
     init {
+        // Initial availability check
         viewModelScope.launch {
             val availabilityStatus = mlKitManager.getBarcodeScannerAvailability()
             scannerState.value = when (availabilityStatus) {
@@ -54,7 +55,7 @@ class JoinRequestViewModel @Inject constructor(
     }
 
     val uiState: StateFlow<JoinRequestUiState> = scannerState
-        // Wait for the initial availabilityStatus to emit our uiState
+        // Wait for the initial scannerState to emit our uiState
         .filterNotNull()
         .mapLatest { JoinRequestUiState.Success(scannerState = it) }
         .stateIn(
@@ -66,8 +67,7 @@ class JoinRequestViewModel @Inject constructor(
     fun scanRequest() {
         viewModelScope.launch {
             // Check availability again to see if something changed since our init check
-            val availabilityStatus = mlKitManager.getBarcodeScannerAvailability()
-            when (availabilityStatus) {
+            when (val availabilityStatus = mlKitManager.getBarcodeScannerAvailability()) {
                 AvailabilityStatus.AlreadyAvailable -> {
                     // If the module is available, launch scanner and make sure
                     // that our scanner state is kept to Ready
@@ -77,7 +77,8 @@ class JoinRequestViewModel @Inject constructor(
 
                 AvailabilityStatus.ReadyToDownload -> {
                     // This will trigger an urgent install and launch the scanner
-                    // when completed. It will also change the required states.
+                    // when completed. The function we are calling will change
+                    // the required states.
                     installScannerModuleAndLaunch()
                 }
 
@@ -96,6 +97,9 @@ class JoinRequestViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Triggers the urgent module install and updates the uiState with the progress
+     */
     private suspend fun installScannerModuleAndLaunch() {
         try {
             val progress = MutableStateFlow(0)
@@ -124,6 +128,7 @@ class JoinRequestViewModel @Inject constructor(
     /**
      * Repeatedly checks if the scanner module is available.
      * We use this to get notified when the scanner switches from "installing" to "ready".
+     * See installScannerModuleAndLaunch for more info.
      * @return true if the scanner became available, false if we reached the time/tries
      * limit and stopped checking.
      */
