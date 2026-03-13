@@ -20,9 +20,11 @@
     <!-- Join request screen -->
     <string name="join_request_title">Join room</string>
     <string name="join_request_scan_section_label">Scan the QR code</string>
-    <string name="join_request_scan_unavailable_error">This device is not compatible with the QR code scanner we use.\n\nPlease use the form below to join the room</string>
-    <string name="join_request_scan_button_content_description">Scan room code</string>
+    <string name="join_request_scan_unavailable_message">This device is not compatible with the QR code scanner we use.\n\nPlease use the form below to join the room</string>
+    <string name="join_request_scan_error_message">An error occurred.\n\nThis device might not be compatible with the QR code scanner we use.\n\nPlease use the form below to join the room</string>
+    <string name="join_request_scan_installing_message">Preparing QR scanner…</string>
     <string name="join_request_scan_button">Launch scanner</string>
+    <string name="join_request_scan_button_content_description">Scan room code</string>
     <string name="join_request_form_section_label">or enter the room code manually</string>
     <string name="join_request_form_field_label">Room code</string>
     <string name="join_request_form_paste_button">Paste</string>

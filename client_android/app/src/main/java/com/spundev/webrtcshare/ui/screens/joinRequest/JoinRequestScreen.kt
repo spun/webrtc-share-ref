@@ -1,7 +1,10 @@
 package com.spundev.webrtcshare.ui.screens.joinRequest
 
+import android.widget.Toast
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -23,11 +26,13 @@ import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -42,9 +47,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -56,15 +61,15 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.android.gms.common.GoogleApiAvailability
-import com.google.android.gms.common.api.ApiException
-import com.google.android.gms.common.moduleinstall.ModuleAvailabilityResponse.AvailabilityStatus.STATUS_ALREADY_AVAILABLE
-import com.google.android.gms.common.moduleinstall.ModuleInstall
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.google.mlkit.common.MlKitException
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.spundev.webrtcshare.R
 import com.spundev.webrtcshare.ui.theme.WebRTCShareTheme
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.tasks.await
 import timber.log.Timber
@@ -72,18 +77,61 @@ import timber.log.Timber
 @Composable
 fun JoinRequestRoute(
     onNavigateBack: () -> Unit,
-    onNavigateToRoom: (String) -> Unit
+    onNavigateToRoom: (String) -> Unit,
+    viewModel: JoinRequestViewModel = hiltViewModel()
 ) {
+    val uiState: JoinRequestUiState by viewModel.uiState.collectAsStateWithLifecycle()
     JoinRequestScreen(
+        uiState = uiState,
         onNavigateBack = onNavigateBack,
-        onRoomId = onNavigateToRoom
+        onScanRequest = viewModel::scanRequest,
+        onRoomId = onNavigateToRoom,
+        // onInstallScannerRequest = viewModel::installScannerModule
     )
+
+    // --- events from viewModel ---
+
+    val screenEvents by viewModel.screenEvents.collectAsStateWithLifecycle()
+
+    // always refer to the latest onNavigateToRoom function
+    val currentOnNavigateToRoom by rememberUpdatedState(onNavigateToRoom)
+
+    val context = LocalContext.current
+    screenEvents?.let { event ->
+        LaunchedEffect(context, event) {
+            if (event is JoinRequestEvents.LaunchScanner) {
+                try {
+                    val options = GmsBarcodeScannerOptions.Builder()
+                        .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
+                        .enableAutoZoom()
+                        .build()
+
+                    val scanner = GmsBarcodeScanning.getClient(context, options)
+                    val result = scanner.startScan().await()
+                    result.rawValue?.let {
+                        Timber.d("code: $it")
+                        currentOnNavigateToRoom(it)
+                    }
+                } catch (e: MlKitException) {
+                    // We checked availability before starting the scanner, so any exception
+                    // should be about the scanning process and not the module.
+                    // Since we don't know what kind of exceptions the scanner can throw,
+                    // just show the message in a toast.
+                    Toast.makeText(context, e.localizedMessage, Toast.LENGTH_LONG).show()
+                } finally {
+                    viewModel.clearScanEvent()
+                }
+            }
+        }
+    }
 }
 
 @Composable
 private fun JoinRequestScreen(
+    uiState: JoinRequestUiState,
     onNavigateBack: () -> Unit,
-    onRoomId: (String) -> Unit
+    onScanRequest: () -> Unit,
+    onRoomId: (String) -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxSize()) {
         JoinRequestTopAppBar(
@@ -96,34 +144,51 @@ private fun JoinRequestScreen(
         val contentInsets = WindowInsets.safeDrawing.only(
             sides = WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom
         )
-        Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier
-                .fillMaxHeight()
-                .align(Alignment.CenterHorizontally)
-                .width(IntrinsicSize.Min)
-                .verticalScroll(rememberScrollState())
-                .windowInsetsPadding(contentInsets)
-        ) {
-            CodeScannerSection(
-                onRoomCodeScan = onRoomId,
-                modifier = Modifier.padding(16.dp),
-            )
-            HorizontalDivider(modifier = Modifier.fillMaxWidth())
-            RoomIdFormSection(
-                onRoomId = onRoomId,
-                modifier = Modifier.padding(16.dp),
-            )
+
+        when (uiState) {
+            JoinRequestUiState.Loading -> {
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .windowInsetsPadding(contentInsets)
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            is JoinRequestUiState.Success -> {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .align(Alignment.CenterHorizontally)
+                        .width(IntrinsicSize.Min)
+                        .verticalScroll(rememberScrollState())
+                        .windowInsetsPadding(contentInsets)
+                ) {
+                    CodeScannerSection(
+                        scannerState = uiState.scannerState,
+                        onScanRequest = onScanRequest,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                    RoomIdFormSection(
+                        onRoomId = onRoomId,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
 private fun CodeScannerSection(
-    onRoomCodeScan: (String) -> Unit,
+    scannerState: ScannerState,
+    onScanRequest: () -> Unit,
     modifier: Modifier = Modifier,
-    isScannerApiAvailable: Boolean = rememberScannerApiAvailability(),
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -137,45 +202,22 @@ private fun CodeScannerSection(
         )
         // Button to launch the scanner
         CodeScannerButton(
-            onRoomCodeScan = onRoomCodeScan,
-            enabled = isScannerApiAvailable
+            onScanRequest = onScanRequest,
+            enabled = scannerState == ScannerState.Ready
         )
-        // Explain if scanner is not available
-        if (!isScannerApiAvailable) {
-            Text(
-                text = stringResource(R.string.join_request_scan_unavailable_error),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.small)
-                    .background(MaterialTheme.colorScheme.errorContainer)
-                    .padding(8.dp)
-            )
-        }
+        // Extra info message
+        CodeScannerInfoMessage(scannerState)
     }
 }
 
 @Composable
 private fun CodeScannerButton(
-    onRoomCodeScan: (String) -> Unit,
+    onScanRequest: () -> Unit,
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     Button(
-        onClick = {
-            val options = GmsBarcodeScannerOptions.Builder()
-                .setBarcodeFormats(Barcode.FORMAT_QR_CODE)
-                .enableAutoZoom()
-                .build()
-
-            val scanner = GmsBarcodeScanning.getClient(context, options)
-            scope.launch {
-                val result = scanner.startScan().await()
-                result.rawValue?.let { onRoomCodeScan(it) }
-            }
-        },
+        onClick = onScanRequest,
         enabled = enabled,
         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
         modifier = modifier
@@ -191,42 +233,64 @@ private fun CodeScannerButton(
 }
 
 @Composable
-private fun rememberScannerApiAvailability(): Boolean {
-    // Indicates if the device can access the scanner api from Google play services
-    val isScannerApiAvailable = remember { mutableStateOf(false) }
-
-    val context = LocalContext.current
-    LaunchedEffect(context) {
-        val moduleInstallClient = ModuleInstall.getClient(context)
-        val scanner = GmsBarcodeScanning.getClient(context)
-        isScannerApiAvailable.value = try {
-            val result = moduleInstallClient.areModulesAvailable(scanner).await()
-            // The other options are STATUS_READY_TO_DOWNLOAD and STATUS_UNKNOWN_MODULE
-            // Even if we set the barcode_ui dependency in our AndroidManifest, we don't
-            // know how they are handled when installing the apk directly.
-            // We don't know if the call to "startScan" will trigger the download
-            // automatically or if it will throw an error.
-            // TODO: We need to check if there is a way to uninstall downloaded modules
-            //  to test these situations.
-            result.availabilityStatus == STATUS_ALREADY_AVAILABLE
-        } catch (e: ApiException) {
-            // Debug values
-            Timber.w(e, "Error checking module availability")
-            val googleApiAvailability = GoogleApiAvailability.getInstance()
-            Timber.d("- status: ${e.status}")
-            Timber.d("- statusCode: ${e.statusCode}")
-            Timber.d("- statusMessage: ${e.message}")
-            Timber.d("- connectionResult: ${e.status.connectionResult}")
-            val errorCode = e.status.connectionResult?.errorCode
-            if (errorCode != null) {
-                Timber.d("- message: ${googleApiAvailability.getErrorString(errorCode)}")
-                val isUserResolvable = googleApiAvailability.isUserResolvableError(errorCode)
-                Timber.d("- isUserResolvable: $isUserResolvable")
+private fun CodeScannerInfoMessage(
+    scannerState: ScannerState,
+    modifier: Modifier = Modifier
+) {
+    // This is the easiest animation we can add
+    // to smooth out the switch between states
+    AnimatedContent(
+        targetState = scannerState,
+        modifier = modifier
+    ) { scannerState ->
+        when (scannerState) {
+            // Display installation progress
+            is ScannerState.Installing -> {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.secondaryContainer)
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.join_request_scan_installing_message),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    val progress by scannerState.progress.collectAsStateWithLifecycle()
+                    LinearProgressIndicator(progress = { progress / 100f })
+                }
             }
-            false
+
+            // The scanner is not available for this device. Notify user.
+            ScannerState.Unavailable -> {
+                Text(
+                    text = stringResource(R.string.join_request_scan_unavailable_message),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                )
+            }
+
+            ScannerState.Error -> {
+                Text(
+                    text = stringResource(R.string.join_request_scan_error_message),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier
+                        .clip(MaterialTheme.shapes.small)
+                        .background(MaterialTheme.colorScheme.errorContainer)
+                        .padding(8.dp)
+                )
+            }
+
+            ScannerState.Ready -> {}
         }
     }
-    return isScannerApiAvailable.value
 }
 
 @Composable
@@ -323,12 +387,32 @@ private fun JoinRequestTopAppBar(
 @Preview
 @Preview(device = "spec:parent=pixel_5,orientation=landscape")
 @Composable
-fun JoinRequestScreenPreview() {
+fun JoinRequestScreenScannerReadyPreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             JoinRequestScreen(
+                uiState = JoinRequestUiState.Success(
+                    scannerState = ScannerState.Ready
+                ),
                 onNavigateBack = {},
-                onRoomId = {}
+                onScanRequest = {},
+                onRoomId = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Preview(device = "spec:parent=pixel_5,orientation=landscape")
+@Composable
+fun JoinRequestScreenLoadingPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            JoinRequestScreen(
+                uiState = JoinRequestUiState.Loading,
+                onNavigateBack = {},
+                onScanRequest = {},
+                onRoomId = {},
             )
         }
     }
@@ -336,12 +420,25 @@ fun JoinRequestScreenPreview() {
 
 @Preview
 @Composable
-fun CodeScannerSectionAvailablePreview() {
+fun CodeScannerSectionReadyPreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             CodeScannerSection(
-                onRoomCodeScan = {},
-                isScannerApiAvailable = true
+                scannerState = ScannerState.Ready,
+                onScanRequest = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CodeScannerSectionInstallingPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            CodeScannerSection(
+                scannerState = ScannerState.Installing(MutableStateFlow(30)),
+                onScanRequest = {},
             )
         }
     }
@@ -353,8 +450,21 @@ fun CodeScannerSectionUnavailablePreview() {
     WebRTCShareTheme {
         Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
             CodeScannerSection(
-                onRoomCodeScan = {},
-                isScannerApiAvailable = false
+                scannerState = ScannerState.Unavailable,
+                onScanRequest = {},
+            )
+        }
+    }
+}
+
+@Preview
+@Composable
+fun CodeScannerSectionErrorPreview() {
+    WebRTCShareTheme {
+        Surface(color = MaterialTheme.colorScheme.surfaceContainer) {
+            CodeScannerSection(
+                scannerState = ScannerState.Error,
+                onScanRequest = {},
             )
         }
     }
