@@ -3,6 +3,7 @@ package com.spundev.webrtcshare.ui.screens.joinRequest
 import android.widget.Toast
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.only
@@ -21,6 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
@@ -58,6 +60,7 @@ import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -158,26 +161,29 @@ private fun JoinRequestScreen(
             }
 
             is JoinRequestUiState.Success -> {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-                    horizontalAlignment = Alignment.CenterHorizontally,
+                Box(
+                    contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .fillMaxHeight()
-                        .align(Alignment.CenterHorizontally)
-                        .width(IntrinsicSize.Min)
-                        .verticalScroll(rememberScrollState())
+                        .fillMaxSize()
                         .windowInsetsPadding(contentInsets)
+                        .verticalScroll(rememberScrollState())
                 ) {
-                    CodeScannerSection(
-                        scannerState = uiState.scannerState,
-                        onScanRequest = onScanRequest,
-                        modifier = Modifier.padding(16.dp),
-                    )
-                    HorizontalDivider(modifier = Modifier.fillMaxWidth())
-                    RoomIdFormSection(
-                        onRoomId = onRoomId,
-                        modifier = Modifier.padding(16.dp),
-                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.width(IntrinsicSize.Min)
+                    ) {
+                        CodeScannerSection(
+                            scannerState = uiState.scannerState,
+                            onScanRequest = onScanRequest,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                        HorizontalDivider(modifier = Modifier.fillMaxWidth())
+                        RoomIdFormSection(
+                            onRoomId = onRoomId,
+                            modifier = Modifier.padding(16.dp),
+                        )
+                    }
                 }
             }
         }
@@ -220,7 +226,12 @@ private fun CodeScannerButton(
         onClick = onScanRequest,
         enabled = enabled,
         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
-        modifier = modifier
+        // We make this focusable to "steal" the focus from our room code text field.
+        // This is a "fix" for the unexpected focus gain we get when a screen has a TextField on older SDKs.
+        // Apparently this was an old bug from Views that Compose recreates for interop scenarios. The
+        // bug will give focus to the text field if there is no other focusable element earlier.
+        // More info: b/396016397 b/396308483 b/318968220 b/374031296
+        modifier = modifier.focusable()
     ) {
         Icon(
             painterResource(R.drawable.ic_qr_code_scanner_24),
@@ -316,7 +327,14 @@ private fun RoomIdFormSection(
         // Field for room id
         OutlinedTextField(
             state = fieldState,
-            label = { Text(stringResource(R.string.join_request_form_field_label)) }
+            label = { Text(stringResource(R.string.join_request_form_field_label)) },
+            lineLimits = TextFieldLineLimits.SingleLine,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
+            onKeyboardAction = {
+                if (fieldState.text.isNotEmpty()) {
+                    onRoomId(fieldState.text.toString())
+                }
+            }
         )
         // Buttons to paste from clipboard or join
         Row(
