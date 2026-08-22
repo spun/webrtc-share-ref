@@ -1,5 +1,3 @@
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.compose.compiler)
@@ -12,14 +10,12 @@ plugins {
 android {
     namespace = "com.spundev.webrtcshare"
     compileSdk {
-        version = release(37) {
-            minorApiLevel = 0
-        }
+        version = release(37)
     }
 
     defaultConfig {
         applicationId = "com.spundev.webrtcshare"
-        minSdk = 23
+        minSdk = 24
         targetSdk = 37
         versionCode = 1
         versionName = "1.0"
@@ -43,11 +39,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlin {
-        compilerOptions {
-            jvmTarget = JvmTarget.JVM_11
-        }
     }
     buildFeatures {
         buildConfig = true
